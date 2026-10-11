@@ -64,24 +64,18 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
   - `::test_concurrent_same_email_creates_one_row` (20 concurrent, same email)
   - `::test_concurrent_cancel_and_register_respects_waitlist_order`
   - `::test_invariants_hold_after_stress` (seats_taken == count, no idle seat while waitlist non-empty, queue_seq unique)
-- **Added during implementation:** `test_concurrency.py::test_20_parallel_registrations_5_seats`, `::test_100_parallel_registrations_10_seats_never_overbook`, `::test_concurrent_same_email_creates_one_row[identical|case_whitespace_variants]`, `::test_parallel_cancels_and_registrations_keep_invariants` (replaces `test_concurrent_cancel_and_register_respects_waitlist_order` and `test_invariants_hold_after_stress`; invariants are checked after every concurrency test). Also `test_cancel.py::test_cancel_after_checkin_rejected`, `::test_cancel_on_cancelled_event_rejected`, `::test_get_registration_shows_ticket_only_when_confirmed`; `test_capacity.py` covers create/read/update validation and the public list; `test_admin_auth.py::test_tampered_cookie_rejected`, `::test_logout_clears_cookie`.
+- **Added during implementation:** `test_concurrency.py::test_20_parallel_registrations_5_seats`, `::test_100_parallel_registrations_10_seats_never_overbook`, `::test_concurrent_same_email_creates_one_row[identical|case_whitespace_variants]`, `::test_parallel_cancels_and_registrations_keep_invariants` (replaces `test_concurrent_cancel_and_register_respects_waitlist_order` and `test_invariants_hold_after_stress`; invariants are checked after every concurrency test). Also `test_cancel.py::test_cancel_after_checkin_rejected`, `::test_cancel_on_cancelled_event_rejected`, `::test_get_registration_shows_ticket_only_when_confirmed`; `test_capacity.py` covers create/read/update validation and the public list (incl. `::test_capacity_change_after_start_rejected`, `::test_update_cancelled_event_rejected`); `test_codes.py::test_ticket_codes_look_random`; `test_admin_auth.py::test_tampered_cookie_rejected`, `::test_logout_clears_cookie`.
 - **DoD:** all of the above pass against real Postgres. Concurrency tests use separate connections (not a shared session) and passed **20 consecutive runs** (`make test-concurrency-loop N=20`, user's requirement; replaces the pytest-repeat ×5 idea).
 
 ## Phase 3: Email outbox dispatcher and tickets
 - **Scope:** `worker` compose service (moved here from phase 1, D-023). Worker dispatcher loop (claim with SKIP LOCKED, lease, retry/backoff, max attempts → failed), SMTP via aiosmtplib to Mailpit, templates for all email kinds, Message-ID from dedupe key, reminder send-time guard hook. Participant view shows the ticket code.
 - **Files:** `backend/app/outbox/{dispatcher.py,templates.py,smtp.py}`, `backend/app/worker.py` (real loop), tests.
-- **Tests:**
-  - `test_outbox.py::test_ticket_email_enqueued_in_same_tx_as_registration` (rollback leaves no outbox row)
-  - `::test_dispatch_marks_sent`
-  - `::test_dispatch_retries_with_backoff_on_smtp_error`
-  - `::test_dispatch_marks_failed_after_max_attempts`
-  - `::test_expired_lease_is_reclaimed`
-  - `::test_two_dispatchers_never_send_same_row` (2 concurrent dispatchers, N rows, each sent once)
-  - `::test_failed_promotion_email_keeps_seat`
-  - `test_mailpit.py::test_registration_email_arrives_in_mailpit_with_ticket_code` (integration: real SMTP + Mailpit HTTP API)
-  - `::test_promotion_email_arrives_with_ticket_code`
-  - `test_registration.py::test_duplicate_registration_sends_no_second_email`
-- **DoD:** registering through the API produces a real email in the Mailpit UI with a ticket code and a working manage link. The Mailpit-outage case was demonstrated: stop mailpit, register, start mailpit, the email arrives.
+- **Files (as built):** `backend/app/emails/{dispatcher,smtp,templates,outbox}.py`, `backend/app/worker.py`, compose services `worker` + `mailpit-test`; tests `tests/{test_email_delivery,test_outbox,test_worker_process}.py`, helpers `tests/{mailpit,senders}.py`.
+- **Tests (as built; user's phase 3 list first):**
+  - `test_email_delivery.py::test_one_email_per_registration`, `::test_repeat_registration_sends_no_second_email`, `::test_promotion_sends_exactly_one_email_with_ticket`, `::test_worker_restart_mid_batch_does_not_duplicate`, `::test_smtp_failure_retries_then_sends_once`, `::test_known_window_crash_after_smtp_accept_resends_same_message_id`
+  - `test_worker_process.py::test_sigterm_mid_batch_then_restart_sends_each_email_once`, `::test_sigkill_mid_batch_then_restart_delivers_all_at_most_one_duplicate` (real `python -m app.worker` processes)
+  - `test_outbox.py::test_ticket_email_enqueued_in_same_tx_as_registration`, `::test_backoff_is_exponential_and_capped`, `::test_lease_must_exceed_batch_send_time`, `::test_dispatch_marks_failed_after_max_attempts`, `::test_failed_promotion_email_keeps_seat`, `::test_two_dispatchers_never_send_same_row`, `::test_stale_claim_cannot_overwrite_newer_claim`, `::test_concurrent_claims_are_disjoint`, `::test_graceful_stop_releases_unsent_rows`, `::test_message_headers`
+- **DoD:** registering through the API produces a real email in the Mailpit UI with a ticket code and a working manage link. The Mailpit-outage case was demonstrated: stop mailpit, register, start mailpit, the email arrives. ✅ Both done; the smoke test checks the first, and DEVLOG phase 3 records the second. (The manage link points at the `/r/{token}` page, which the UI builds in phase 7. The API behind it works now.)
 
 ## Phase 4: Check-in and organizer stats
 - **Scope:** check-in endpoint (atomic conditional update), code normalization, stats endpoint, registrations list.

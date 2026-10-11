@@ -2,7 +2,7 @@
 
 Event registration with a waitlist, emailed tickets, check-in and a live organizer dashboard. The backend is FastAPI + PostgreSQL, and the frontend is React + Vite. Email goes to Mailpit.
 
-> **Current state: phase 2 of 10.** The registration core works via the API: events (organizer), register, cancel, waitlist, FIFO promotion, and concurrency-safe seat allocation. **Emails are queued in the database but not sent yet (phase 3), and there is no UI beyond a health page (phase 7).** The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
+> **Current state: phase 3 of 10.** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats), and a background worker emails tickets, waitlist notices and promotions to Mailpit. **There is no UI beyond a health page yet (phase 7), so the manage link in emails points at a page that doesn't exist yet.** The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
 
 ## Quick start
 
@@ -69,10 +69,21 @@ Full design, including the concurrency mechanisms, data model and edge-case deci
 | Organizer login (cookie) + event create / list / update (capacity changes promote the waitlist) | ✅ API, tested |
 | Register by email (normalized, duplicate-safe), waitlist, cancel via manage link, FIFO promotion | ✅ API, tested |
 | Last-seat race / parallel registrations / same email in parallel / parallel cancel + register | ✅ real-Postgres concurrency tests, passed 20 runs in a row (`make test-concurrency-loop`) |
-| Emails | ⚠️ written to the outbox table in the same transaction, **not sent yet** (phase 3) |
+| Emails: ticket, waitlist notice, promotion with ticket, cancellation confirmation | ✅ outbox row written in the same transaction; `worker` sends via SMTP to Mailpit with retry and backoff. Tested in Mailpit, including worker restarts. |
 | Check-in, live updates, reminders, reschedule, event cancel | ❌ not implemented yet (phases 4–6) |
-| Background worker (email outbox, scheduler) | ❌ not implemented yet (phase 3) |
+| Background worker: email outbox | ✅ (`worker` service). Reminder scheduler ❌ phase 6 |
 | E2E browser tests | ❌ phase 8 |
+
+### Email delivery guarantee (read this)
+
+- **Each email is queued exactly once.** The email row is written in the same database transaction as the seat change, under a unique key, so a repeat registration or a retried request can't queue it twice.
+- **Delivery is at-least-once.** The worker marks an email sent only after the SMTP server accepted it.
+  - On a graceful restart (SIGTERM, `docker compose restart worker`), on a crash before sending, or with several workers running at once, **no duplicates** occur. All of these are tested.
+  - The one case that can produce a duplicate: the worker dies in the instant after Mailpit accepted a message but before the database recorded it. That single message is sent again, with the same Message-ID. This is tested and bounded to ≤1 message per crash.
+  - The alternative (mark first, then send) would instead silently lose a ticket. We chose duplicate over loss.
+- If Mailpit is down, registrations still succeed and emails are retried with exponential backoff (5s, 10s, 20s … capped at 1h; `failed` after 8 attempts).
+
+To see emails: open http://localhost:8025 after registering. Tests use a separate `mailpit-test` container, so running tests never empties your dev inbox.
 
 Known limitations so far:
 - No rate limiting on login or registration. A duplicate registration reveals whether an email is already registered for that event (accepted trade-off, D-036).

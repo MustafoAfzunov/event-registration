@@ -5,7 +5,7 @@ The test DB URL comes from TEST_DATABASE_URL and must point at a database whose 
 in "_test"; the suite downgrades/upgrades and truncates it freely."""
 
 import os
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -21,7 +21,10 @@ from alembic import command
 from app.clock import FixedClock
 from app.config import Settings
 from app.db import make_engine
+from app.emails.dispatcher import Dispatcher
+from app.emails.smtp import Sender, SmtpSender
 from app.main import create_app
+from tests.mailpit import Mailpit
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 TABLES = ("email_outbox", "registrations", "events")
@@ -114,3 +117,34 @@ async def admin(app: FastAPI) -> AsyncIterator[AsyncClient]:
         response = await c.post("/api/admin/login", json={"password": ORGANIZER_PASSWORD})
         assert response.status_code == 204, response.text
         yield c
+
+
+SMTP_HOST = os.environ.get("TEST_SMTP_HOST", "mailpit-test")
+SMTP_PORT = int(os.environ.get("TEST_SMTP_PORT", "1025"))
+
+
+@pytest.fixture
+async def mailpit() -> AsyncIterator[Mailpit]:
+    """The test Mailpit, emptied before each test that uses it."""
+    client = Mailpit()
+    await client.clear()
+    yield client
+    await client.close()
+
+
+@pytest.fixture
+def smtp() -> SmtpSender:
+    return SmtpSender(SMTP_HOST, SMTP_PORT, timeout=5)
+
+
+@pytest.fixture
+def make_dispatcher(app: FastAPI, clock: FixedClock, smtp: SmtpSender) -> Callable[..., Dispatcher]:
+    """Build a dispatcher sharing the app's DB and clock. Each call = a fresh 'worker'."""
+
+    def build(sender: Sender | None = None, **overrides: Any) -> Dispatcher:
+        settings = app.state.settings.model_copy(
+            update={"outbox_lease_seconds": 60, "smtp_timeout_seconds": 5, **overrides}
+        )
+        return Dispatcher(app.state.sessionmaker, sender or smtp, clock, settings)
+
+    return build

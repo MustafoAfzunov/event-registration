@@ -138,9 +138,16 @@ WHERE id IN (
   ORDER BY id LIMIT 20 FOR UPDATE SKIP LOCKED)
 RETURNING *;
 ```
-COMMIT, then send each row over SMTP, then mark it `sent` with `sent_at`. On SMTP error the row goes back to `pending` with `next_attempt_at = now + min(5s·2^attempts, 1h)` and `last_error` set. After `OUTBOX_MAX_ATTEMPTS` (default 8) it becomes `failed`. `SKIP LOCKED` makes N worker replicas safe.
+COMMIT, then send each row over SMTP, then mark it `sent` with `sent_at`. On SMTP error the row goes back to `pending` with `next_attempt_at = now + min(5s·2^(attempts−1), 1h)` and `last_error` set. After `OUTBOX_MAX_ATTEMPTS` (default 8) it becomes `failed`. `SKIP LOCKED` makes N worker replicas safe.
 
-**Honest guarantee.** Enqueue is **exactly once**: it's atomic with the state change and deduped by key. SMTP delivery is **at least once**. If the worker crashes after the SMTP server accepts a message but before `sent` is committed, the lease expires and the email is sent again. Exactly-once delivery over SMTP isn't achievable in general. To mitigate, each email carries a `Message-ID: <{dedupe_key-hash}@eventreg.local>`, so a duplicate is identifiable and most clients thread or collapse it. The README will say this plainly.
+*As built (phase 3):*
+- **Fencing token:** `attempts` after the claim is the token. Every completion (`sent`, retry, give up, release) is `WHERE id=:id AND status='sending' AND attempts=:token`. A worker whose lease expired and whose row was re-claimed can't change it, so it can't flip a row back to `pending` while the new owner is sending.
+- **Lease rule:** startup refuses `OUTBOX_LEASE_SECONDS <= batch_size × (smtp_timeout + send_interval)`. Otherwise a slow but alive worker could lose rows it is still sending.
+- **Graceful stop (SIGTERM):** the in-flight message is finished and recorded, and the rest of the batch is released to `pending` immediately, so a restart causes no duplicates and no lease wait.
+- **Liveness:** the worker touches a heartbeat file every loop, and the compose healthcheck fails when it's older than 30s.
+- `attempts` counts claims, so a row released on shutdown has used one attempt.
+
+**Honest guarantee** (user-confirmed choice, D-043). Enqueue is **exactly once**: it's atomic with the state change and deduped by key. SMTP delivery is **at least once**. If the worker crashes after the SMTP server accepts a message but before `sent` is committed, the lease expires and the email is sent again. Exactly-once delivery over SMTP isn't achievable in general. To mitigate, each email carries a `Message-ID: <{dedupe_key-hash}@eventreg.local>`, so a duplicate is identifiable and most clients thread or collapse it. The README will say this plainly.
 
 **Send-time guard (reminders only).** Just before sending a `reminder`, the worker re-checks that the registration is still `confirmed` and that `events.schedule_version` still equals the version in the row. If not, the row is marked `skipped`. This voids stale reminders after a cancellation or reschedule.
 

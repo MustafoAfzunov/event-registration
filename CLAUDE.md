@@ -5,7 +5,7 @@ These are the project rules for every session. Read `docs/ARCHITECTURE.md`, `doc
 ## Stack (decided in phase 0; see DECISIONS.md)
 - **Backend:** Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0 async + psycopg 3, Alembic, aiosmtplib, itsdangerous. Fully async.
 - **DB:** PostgreSQL 16. READ COMMITTED + explicit `SELECT … FOR UPDATE` on the event row.
-- **Worker:** `python -m app.worker` runs the outbox dispatcher and reminder scheduler. There's no Celery and no Redis.
+- **Worker:** `python -m app.worker` (compose service `worker`) runs the outbox dispatcher (phase 3) and, from phase 6, the reminder scheduler. There's no Celery and no Redis. Email delivery is **at-least-once** by user decision (D-043). Never describe it as exactly-once delivery.
 - **Live updates:** SSE + Postgres `LISTEN/NOTIFY`.
 - **Email:** transactional outbox, then SMTP to Mailpit.
 - **Frontend:** React 19 + Vite 8 + TypeScript 6.0, React Router, plain fetch/EventSource, served by nginx (which proxies `/api`).
@@ -39,6 +39,7 @@ If a command here goes stale, fix this file in the same commit.
 
 ## Correctness conventions
 - Every operation that changes seat ownership (register, cancel, capacity change, reschedule, cancel event) starts with `SELECT … FROM events WHERE id=:id FOR UPDATE` in **one transaction**. Lock order is **always the event first, then registrations**.
+- Tests that check emails read them from the **test** Mailpit (`tests/mailpit.py`, service `mailpit-test`) and drive the worker logic via the `make_dispatcher` fixture (shared FixedClock). Fault injection lives in `tests/senders.py`.
 - Emails are **only** created by inserting into `email_outbox` inside the business transaction with a deterministic `dedupe_key` (`ON CONFLICT DO NOTHING`). Never send SMTP from a request handler.
 - Every mutating transaction that changes counts calls `pg_notify('event_changed', event_id)` before commit.
 - Never call SQL `now()` or `datetime.now()` in business logic. Use the injected `Clock` and pass `:now` as a bound parameter.

@@ -50,7 +50,7 @@ Request: `{ "email": "Alice@Example.com " }`
   "status": "confirmed",            // or "waitlisted"
   "waitlist_position": null,        // integer when waitlisted
   "email": "Alice@Example.com",
-  "message": "You're in! Your ticket was sent to Alice@Example.com." }
+  "message": "You're in! Your ticket is on its way to Alice@Example.com." }
 ```
 There's no ticket code and no token in the response (ARCHITECTURE A9). Both are emailed.
 

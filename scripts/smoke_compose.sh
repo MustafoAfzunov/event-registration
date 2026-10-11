@@ -81,4 +81,16 @@ r2=$(curl -sS -H 'Content-Type: application/json' -d '{"email":"two@example.com"
   || fail "registration flow: $r1 / $r2"
 ok "organizer login + create event + register (confirmed, then waitlisted) via nginx"
 
+# The worker container delivers both emails (ticket + waitlist notice) to Mailpit.
+mp="http://localhost:$MAILPIT_UI_PORT/api/v1/messages"
+for _ in $(seq 1 30); do
+  n=$(curl -fsS "$mp" | grep -o '"Subject":"[^"]*"' | grep -c 'Smoke' || true)
+  [[ "$n" -ge 2 ]] && break; sleep 0.5
+done
+subjects=$(curl -fsS "$mp" | grep -o '"Subject":"[^"]*"')
+[[ "$subjects" == *'Your ticket for Smoke'* && "$subjects" == *'waitlist for Smoke'* ]] \
+  || fail "emails not delivered by worker: $subjects"
+[[ "$(echo "$subjects" | grep -c Smoke)" == "2" ]] || fail "expected exactly 2 emails: $subjects"
+ok "worker delivered exactly 2 emails (ticket + waitlist notice) to Mailpit"
+
 echo "SMOKE PASS: $passed checks"

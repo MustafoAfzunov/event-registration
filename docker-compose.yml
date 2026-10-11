@@ -15,6 +15,8 @@ x-backend-env: &backend-env
   ORGANIZER_PASSWORD: ${ORGANIZER_PASSWORD:-organizer-dev-password}
   SESSION_SECRET: ${SESSION_SECRET:-dev-only-session-secret-change-me-0123456789}
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+  SMTP_HOST: mailpit
+  SMTP_PORT: "1025"
 
 x-backend-build: &backend-build
   context: ./backend
@@ -70,6 +72,25 @@ services:
       timeout: 4s
       retries: 20
 
+  # Sends emails from the outbox (phase 3); reminder scheduler joins in phase 6.
+  worker:
+    build: *backend-build
+    command: ["python", "-m", "app.worker"]
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_healthy
+    stop_grace_period: 30s
+    healthcheck:
+      # Healthy while the dispatcher loop keeps touching its heartbeat file.
+      test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(time.time() - os.path.getmtime('/tmp/worker-heartbeat') > 30)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
   frontend:
     build:
       context: ./frontend
@@ -94,11 +115,26 @@ services:
     environment:
       <<: *backend-env
       TEST_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-eventreg}:${POSTGRES_PASSWORD:-eventreg}@db:5432/${POSTGRES_DB:-eventreg}_test
+      # Tests get their own Mailpit so they never wipe the dev inbox.
+      TEST_SMTP_HOST: mailpit-test
+      TEST_SMTP_PORT: "1025"
+      TEST_MAILPIT_API: http://mailpit-test:8025
     volumes:
       - ./backend:/app
     depends_on:
       db:
         condition: service_healthy
+      mailpit-test:
+        condition: service_healthy
+
+  mailpit-test:
+    profiles: ["test"]
+    image: axllent/mailpit:v1.31
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
   frontend-test:
     profiles: ["test"]

@@ -25,7 +25,7 @@ def _message(result: registration.RegisterResult) -> str:
     if not result.created:
         return f"You're already registered ({reg.status.value}). Check {reg.email} for details."
     if reg.status == RegistrationStatus.confirmed:
-        return f"You're in! Your ticket was sent to {reg.email}."
+        return f"You're in! Your ticket is on its way to {reg.email}."
     return (
         f"The event is full. You're #{result.waitlist_position} on the waitlist; "
         f"we'll email {reg.email} if a seat frees up."

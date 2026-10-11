@@ -99,3 +99,50 @@ Append-only. One entry per phase (or significant session), with a timestamp from
 - No rate limiting. Duplicate registration reveals registration status (D-036).
 
 **Next:** phase 3 (email worker), in this same session, per the user's instruction.
+
+---
+
+## 2026-10-11T15:19:41+06:00 · Phase 3: Email outbox worker and tickets
+
+**Done**
+- **Worker** (`python -m app.worker`, compose service `worker` with heartbeat healthcheck): `Dispatcher` behaviour:
+  - Claims batches with `FOR UPDATE SKIP LOCKED` and a lease.
+  - Fencing via `attempts`.
+  - SMTP to Mailpit via aiosmtplib.
+  - Exponential backoff, `failed` after 8 attempts.
+  - SIGTERM finishes the in-flight message and releases the rest.
+  - Startup check that lease > worst-case batch time.
+- **Emails:** ticket (code + manage link), waitlist notice (position, no code), promotion (with ticket), cancellation confirmation. Rendered at enqueue time. Deterministic Message-ID from the dedupe key.
+- **Delivery guarantee:** exactly-once *enqueue* (phase 2: same transaction + unique key), **at-least-once delivery** (user decision, D-043), documented in README and ARCHITECTURE §4.5.
+- **Test infrastructure:** separate `mailpit-test` service, a Mailpit API client, fault-injecting senders (real dead-port failures, simulated crashes), and real worker subprocess tests.
+- Smoke now has 9 probes, including "worker delivered exactly 2 emails" on the real stack.
+
+**Tests:** `make lint && make test-all` → clean. **Backend 116 passed**, frontend 4 passed, smoke 9/9.
+- Your 5 required tests, all verified in Mailpit:
+  - `test_one_email_per_registration`
+  - `test_repeat_registration_sends_no_second_email`
+  - `test_promotion_sends_exactly_one_email_with_ticket`
+  - `test_worker_restart_mid_batch_does_not_duplicate`
+  - `test_smtp_failure_retries_then_sends_once`
+- **Real-process restarts:**
+  - SIGTERM mid-batch, then restart: exactly 20/20, no duplicates.
+  - SIGKILL mid-batch, then restart: all 20 delivered, ≤1 duplicate (the at-least-once window).
+- **Flakiness:** the 17 email/worker tests passed **10/10 consecutive runs**.
+
+**Mutation checks (do the tests have teeth?)**
+- Fence removed: initially **not caught**. The test reported after the new owner had finished, so the status check alone protected the row. Rewritten to report while the new owner is still sending, and now caught (D-044).
+- `FOR UPDATE SKIP LOCKED` removed: initially **not caught**, because two ungated dispatchers never overlapped. Added `test_concurrent_claims_are_disjoint` with a table-lock gate (10 claimers proven blocked), and now caught: "a row was claimed by two dispatchers" (D-047).
+
+**Manual demo on the dev stack (phase 3 DoD):** stopped `mailpit` and registered `outage@example.com`. The API returned 201 and the outbox row went `pending`, attempts 2, `SMTPConnectError`, retry scheduled. After `docker compose start mailpit` the email arrived about 5s later, **1 copy**, row `sent` on attempt 3.
+
+**Surprises**
+- Both mutants above survived the first version of the tests. That was the most valuable finding of this phase.
+- The API said "Your ticket was sent" while the email was only queued, which the outage demo made false. Now it says "on its way" (D-053).
+
+**Not done / known gaps**
+- The manage link in emails points at `/r/{token}`, a UI page that arrives in phase 7. The API behind it works.
+- No reminder scheduler yet (phase 6). No HTML emails. No SMTP TLS/auth (Mailpit only).
+- Exactly-once *delivery* isn't achievable over SMTP. The one duplicate window is documented and tested.
+- `attempts` also counts releases on graceful shutdown (D-045).
+
+**Next:** phase 4 (check-in + organizer stats). Not started.

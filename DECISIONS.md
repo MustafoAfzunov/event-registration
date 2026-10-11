@@ -241,3 +241,62 @@ Format: **D-NNN, title** · When · Decision · Why · Rejected alternatives.
 ### D-041: Test app pool = 40 + 10 overflow connections
 - **When:** 2026-10-11T14:46:03+06:00
 - **Decision:** `make_settings` in tests sets `db_pool_size=40`, so 20 gated requests truly hold 20 connections at once (verified by the gate). Production default stays 10 + 20 per process.
+
+---
+<!-- Phase 3 -->
+
+### D-043: Email delivery is at-least-once (user decision); "exactly once" applies to enqueue
+- **When:** 2026-10-11T15:17:52+06:00
+- **Decision:** the user chose at-least-once over at-most-once and over a Mailpit-only "check before resend" trick. A row becomes `sent` only after SMTP accepted it.
+- **Why:** over SMTP, "crash after the server accepted, before our commit" can't be made exactly-once. One side must give: a duplicate or a lost ticket. A duplicate (with the same Message-ID) is the lesser harm.
+- **Proof:** no duplicates on graceful restart, on a crash before send, or with concurrent workers (tests). The window itself is demonstrated by `test_known_window_crash_after_smtp_accept_resends_same_message_id`, and bounded to ≤1 per real SIGKILL by `test_sigkill_mid_batch_then_restart_delivers_all_at_most_one_duplicate`.
+
+### D-044: `attempts` doubles as the claim's fencing token
+- **When:** 2026-10-11T15:17:52+06:00
+- **Decision:** the claim increments `attempts`. Completion statements require `status='sending' AND attempts=:token`.
+- **Why:** without it, a worker whose lease expired could, after a re-claim, flip the row back to `pending` (late failure report), and a third worker would send it again. No schema change was needed.
+- **Evidence:** removing the fence makes `test_stale_claim_cannot_overwrite_newer_claim` fail. The first version of that test did *not* catch the mutant, because it reported after the new owner had finished and the status check alone protected the row. It was rewritten to report while the new owner is still sending.
+
+### D-045: Graceful shutdown releases the unsent rest of a batch; `attempts` counts claims
+- **When:** 2026-10-11T15:17:52+06:00
+- **Decision:** on SIGTERM the in-flight message completes and is recorded, and the remaining claimed rows go back to `pending` (fenced). `attempts` isn't decremented.
+- **Why:** `docker compose restart worker` or a deploy must not wait out a lease, and must not create duplicates. Not decrementing keeps the fencing token monotonic. The cost is that a release uses up one of 8 attempts, which is acceptable.
+
+### D-046: The worker refuses to start if lease ≤ worst-case batch send time
+- **When:** 2026-10-11T15:17:52+06:00
+- **Decision:** `OUTBOX_LEASE_SECONDS > OUTBOX_BATCH_SIZE × (SMTP_TIMEOUT_SECONDS + OUTBOX_SEND_INTERVAL_SECONDS)`, otherwise `ValueError` at startup.
+- **Why:** if a slow but alive worker's lease expires mid-batch, another worker would send the same rows. Defaults are 10 × (10 + 0) = 100s < 120s.
+
+### D-047: Concurrency tests for claims use a table-lock gate
+- **When:** 2026-10-11T15:17:52+06:00
+- **Decision:** `test_concurrent_claims_are_disjoint` holds `LOCK TABLE email_outbox IN SHARE MODE` (which blocks the claim UPDATEs), waits until 10 claimers are blocked in pg_locks, then releases them.
+- **Why:** the ungated two-dispatcher test passed even with `FOR UPDATE SKIP LOCKED` removed, because the claims never actually overlapped. With the gate, the mutant fails ("a row was claimed by two dispatchers").
+
+### D-048: Tests use a separate Mailpit (`mailpit-test`, profile test)
+- **When:** 2026-10-11T15:17:52+06:00
+- **Decision:** tests empty and read only `mailpit-test`. The dev `mailpit` is never touched by tests.
+- **Why:** `make test` must never delete the emails a developer is looking at, and dev traffic must not pollute assertions.
+
+### D-049: Worker liveness via heartbeat file
+- **When:** 2026-10-11T15:17:52+06:00
+- **Decision:** the dispatcher loop touches `WORKER_HEARTBEAT_FILE` each iteration, and the compose healthcheck fails if it's older than 30s. `make up --wait` therefore also waits for the worker.
+- **Why:** "process is running" isn't the same as "loop is alive". A stuck loop is detected without an HTTP server in the worker.
+
+### D-050: `OUTBOX_SEND_INTERVAL_SECONDS` (default 0)
+- **When:** 2026-10-11T15:17:52+06:00
+- **Decision:** an optional pause between sends.
+- **Why:** real SMTP providers rate-limit. The process tests also use it (0.2s) so a SIGTERM or SIGKILL reliably lands mid-batch. It's included in the lease rule (D-046).
+
+### D-051: "Unguessable" ticket code: 40 bits from `secrets`, plus check-in is organizer-only
+- **When:** 2026-10-11T15:17:52+06:00
+- **Decision:** keep 8 Crockford symbols (D-013) rather than lengthening the code that staff type.
+- **Why:** the code isn't a credential. Check-in requires the organizer cookie and is scoped per event. The probability that one blind guess hits any of 1,000 valid codes is 1000/2^40 ≈ 9×10⁻¹⁰. Participant control (view/cancel) uses a separate 256-bit `manage_token`. Uniqueness: DB unique constraint plus SAVEPOINT retry (D-035).
+
+### D-052: Messages are rendered at enqueue time; plain text only
+- **When:** 2026-10-11T15:17:52+06:00
+- **Decision:** subject and body are stored in the outbox row (auditable, testable, and they don't change if the event is edited later). No HTML part.
+- **Why:** boring and reliable. Mailpit shows text fine. The reschedule (phase 6) sends a new email instead of mutating queued ones.
+
+### D-053: The registration response says the ticket is "on its way", not "was sent"
+- **When:** 2026-10-11T15:17:52+06:00
+- **Why:** at response time the email is only queued. During the Mailpit outage demo, "was sent" would have been false.
