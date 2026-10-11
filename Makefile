@@ -9,7 +9,7 @@ TEST := $(COMPOSE) --profile test run --rm --build
         lint lint-backend lint-frontend
 
 help: ## List targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-15s %s\n", $$1, $$2}'
+	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-15s %s\n", $$1, $$2}'
 
 .env:
 	cp .env.example .env

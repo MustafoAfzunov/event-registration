@@ -22,7 +22,7 @@ Each finding has a proposed test that reproduces it. **Status** is updated as fi
 | L3 | LOW | SSE: subscriber cleanup on real disconnect not verified end-to-end; no connection cap | open |
 | L4 | LOW | Timing-sensitive tests that could flake on a slow machine | open |
 | L5 | LOW | `seats_taken == number of seat holders` is maintained by code, not enforced by the DB | open |
-| L6 | LOW | `docker compose up --build` without make is claimed in the README but never tested | open |
+| L6 | LOW | `docker compose up --build` without make is claimed in the README but never tested | checked by hand from a clean clone (phase 10); still no automated test |
 | L7 | LOW | One snapshot query per open stream per change (N viewers = N queries) | open |
 
 What I looked for and did **not** find: overbooking or duplicate seats under any interleaving I could construct (event lock + CHECK + partial unique index, all mutation-tested), lock-order inversions, SQL injection, XSS (React escaping; emails are plain text), open redirect after login (`next` must start with `/admin`), and non-idempotent enqueue (every email kind has a deterministic dedupe key).

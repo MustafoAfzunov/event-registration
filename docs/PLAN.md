@@ -155,7 +155,13 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
 - **DoD:** REVIEW.md has no open high or medium findings. Full suite and E2E were re-run and shown.
 
 ## Phase 10: Final docs
-- **Scope:** README with one-command run, demo walkthrough (URLs, organizer password from `.env.example`, how to see emails), architecture summary linking docs, **honest status** (what works, known limitations such as at-least-once SMTP, no rate limiting, single organizer), test commands and the latest real test output summary, a requirement→test table (from TEST_PLAN). Docs are checked against the code.
-- **Files:** `README.md`, touch-ups in `docs/*`.
-- **Tests:** full suite and E2E once more on a clean clone (`git clone` into a temp dir, then `docker compose up --build`, then `make test e2e`).
-- **DoD:** a reviewer can go from `git clone` to a working demo using only the README. Every claim in the README is backed by a test or explicitly marked untested.
+- **Scope:** final README (what it is, quick start with prerequisites, architecture summary, what works with evidence, what doesn't and why, proof, AI tools, templates, next steps), generated `docs/TIMELINE.md`, every README claim checked by running it.
+- **Files (as built):** `README.md`, `docs/TIMELINE.md` (generated), `scripts/timeline.sh`, Makefile `help` fix.
+- **Verification (as run):**
+  - **Default ports on the dev stack:** :8080, :8080/api/health, :8000/api/health, :8000/health, :8000/docs and :8025 return 200; `pg_isready` on :5433 succeeds; the `curl -N …/stream` example prints `retry:` and an `availability` frame.
+  - **Clean `git clone`** (with the phase 10 edits overlaid), own compose project and ports so the dev stack isn't touched:
+    - `make up` creates `.env` and is healthy in 24s (warm cache);
+    - `docker compose up --build -d --wait` **without make and without `.env`** is healthy in 14s;
+    - **`make proof` passes in 243s: 245/245 test cases, 45 PASS + 1 MANUAL.**
+  - Every relative link in the README and docs resolves (scripted check).
+- **DoD:** a reviewer can go from `git clone` to a working demo using only the README, and every README claim is backed by a test, a command that was run, or is explicitly marked untested or open. ✅

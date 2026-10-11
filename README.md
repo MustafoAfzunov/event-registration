@@ -1,137 +1,230 @@
 # Event Registration Service (Task 9)
 
-Event registration with a waitlist, emailed tickets, check-in and a live organizer dashboard. The backend is FastAPI + PostgreSQL, and the frontend is React + Vite. Email goes to Mailpit.
+People register for an event by email and get an emailed ticket with a code. When the event is full they join a waitlist, and when someone cancels, the first person waiting gets the seat and an email automatically. Organizers manage events, see live counters (registered, waitlisted, checked in), check tickets in at the door by typing the code, and can reschedule (everyone is emailed). Every confirmed participant gets exactly one reminder 24 hours before the event.
 
-> **Current state: phase 9 of 10 (independent review done: [docs/REVIEW.md](docs/REVIEW.md), both HIGH findings fixed, MEDIUM/LOW findings listed below).** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats). A background worker emails tickets, waitlist notices and promotions to Mailpit. Organizers can check tickets in (exactly once) and read stats. Counters update live over SSE across backend workers. A scheduler in the worker sends exactly one reminder per confirmed participant 24h before the event, and rescheduling notifies everyone. A React UI covers every flow (public event page, ticket page, organizer dashboard, check-in). The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
+**Stack:** FastAPI (Python 3.12) + PostgreSQL 16 backend, a separate email/scheduler worker, a React 19 + Vite frontend served by nginx, and Mailpit as the email inbox. Everything runs with one `docker compose` command.
+
+**Where to look next:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (design and concurrency mechanisms), [docs/API.md](docs/API.md) (API contract), [docs/TEST_PLAN.md](docs/TEST_PLAN.md) (requirement → test map), [docs/REVIEW.md](docs/REVIEW.md) (independent review and open findings), [DECISIONS.md](DECISIONS.md) (every decision with timestamp and reason), [DEVLOG.md](DEVLOG.md) and [docs/TIMELINE.md](docs/TIMELINE.md) (how it was built).
 
 ## Quick start
 
-Requirements: Docker with the Compose v2 plugin and `make` for running the app, `make test` and `make lint` (tests and linters run in containers). `make test-smoke`, `make e2e` and `make proof` also need `bash`, `curl` and **GNU** `date` on the host: Linux works as is; on macOS install coreutils (REVIEW M5).
+**Prerequisites**
+- Docker with the Compose v2 plugin. Verified with Docker 29.1.3 and Compose v2.27.0 on Linux.
+- `make`.
+- Free host ports 8080, 8000, 8025, 1025 and 5433 (all configurable in `.env`).
+- For `make test-smoke`, `make e2e` and `make proof` only: `bash`, `curl` and GNU `date`. Linux works as is; on macOS install coreutils ([REVIEW M5](docs/REVIEW.md)).
+- Internet access on the first run, to pull images and dependencies.
+
+**Run**
 
 ```bash
 make up
 ```
 
-This copies `.env.example` to `.env` if it's missing, builds the images, applies database migrations, and returns once every service is healthy. Then open:
+This copies `.env.example` to `.env` if there is none, builds the images, applies database migrations, and returns once every service is healthy. A re-run with a warm Docker cache took 24s in the final check. The very first build downloads images and dependencies and takes several minutes. Without make, `docker compose up --build` works too: the compose file has a default for every variable, and the `-d --wait` variant was checked from a clean clone without a `.env`.
 
 | What | URL |
 |---|---|
-| App (React, served by nginx) | http://localhost:8080 |
-| API health | http://localhost:8000/api/health (also `/health`) |
-| API docs (OpenAPI) | http://localhost:8000/docs |
-| Mailpit (captured emails) | http://localhost:8025 |
-| Postgres (for psql/GUI) | `localhost:5433`, user/password/db `eventreg` |
-
-The app page shows **"Backend: ok · Database: ok"** when the browser → nginx → backend → Postgres path works.
-
-If a port clashes with something on your machine, change it in `.env`.
+| App | http://localhost:8080 |
+| Organizer login | http://localhost:8080/admin. Password: `ORGANIZER_PASSWORD` in `.env` (dev default `organizer-dev-password`) |
+| Emails (Mailpit) | http://localhost:8025 |
+| API health / OpenAPI docs | http://localhost:8000/api/health · http://localhost:8000/docs |
+| Postgres | `localhost:5433`, user, password and db `eventreg` |
 
 ```bash
-make down      # stop (keeps data)
-make clean     # stop and DELETE the database volume
-make logs      # follow logs
-make help      # all targets
+make down    # stop (keeps data)
+make clean   # stop and DELETE the database volume
+make help    # every target
 ```
 
-Without make, `docker compose up --build` also works (the compose file has defaults for every variable).
+**Try it** (about 2 minutes)
+1. Log in at `/admin` and create an event with 1 seat. Its dashboard shows live counters.
+2. Open the event's public page (link on the dashboard) in a second tab and register two emails (use `example.com`-style addresses; special-use domains like `.test` are rejected). The first gets the seat, the second is waitlisted. The dashboard updates without reloading.
+3. In Mailpit, open the first person's ticket email and follow its link to the ticket page. Cancel: the waitlisted person is promoted and gets an email with their ticket.
+4. On the dashboard, open the check-in screen and type the promoted person's ticket code. You get a green "Welcome!" the first time and a red "Already used" the second, and the dashboard counter changes live.
 
-## Using the app
-
-1. Open http://localhost:8080/admin and log in with `ORGANIZER_PASSWORD` from `.env` (dev default: `organizer-dev-password`).
-2. Create an event. Its dashboard shows live counters and the participant list.
-3. Open the event's **public page** (link on the dashboard) in another tab and register with any email. Use `example.com`-style addresses; special-use domains like `.test` are rejected.
-4. Open http://localhost:8025 (Mailpit) to see the ticket email. Its link opens the **ticket page**, which shows the code and has a cancel button.
-5. On the dashboard, open the **check-in screen** and type the code. The dashboard in the other tab updates without reloading.
-
-## Tests
-
-```bash
-make test         # backend (pytest, real Postgres) + frontend (vitest)
-make lint         # ruff, ruff format --check, mypy --strict, eslint, tsc
-make test-smoke   # boots a throwaway stack FROM SCRATCH with `make up` and probes it
-make test-all     # test + test-smoke
-make test-concurrency-loop N=20   # concurrency tests 20x as separate processes (flakiness check)
-make e2e          # Playwright, two browser contexts, against an isolated throwaway stack (~2 min)
-make stress       # 250 concurrent registrations + mixed cancels against the RUNNING dev stack
-make proof        # EVERYTHING above, then a PASS/FAIL table per requirement of docs/TEST_PLAN.md (~10 min)
-```
-
-`make proof` ends with a table like this (generated from the JUnit results, not written by hand):
-
-```
-Behaviour requirements
-  ID     RESULT   detail
-  B5     PASS     8 checks          <- last-seat race: gated pytest x25, UI race x3, stress, concurrency loop
-  B7b    PASS     6 checks          <- live arrived counter: real uvicorn workers, two browser tabs
-  ...
-Requirements: 1 MANUAL, 43 PASS
-PROOF PASS
-```
-
-A row whose referenced test doesn't exist shows **MISSING** and fails the proof, so the plan can't claim tests that aren't there. P7 ("honest README") is the only row that can't be automated.
-
-- **Backend tests** run against a real PostgreSQL database (`eventreg_test`, created automatically on first DB start), never SQLite or mocks. The suite refuses to run against any database whose name doesn't end in `_test`.
-- **The smoke test** (`scripts/smoke_compose.sh`) uses its own compose project, volumes and ports (18080/18000/18025/15433), so it never touches your dev stack or data. It removes everything afterwards. Set `SMOKE_NO_CACHE=1` to also rebuild images without Docker's build cache.
+For live updates from a terminal: `curl -N localhost:8080/api/events/<event-id>/stream`, then register from another terminal.
 
 ## Architecture (short)
 
 ```
-browser ──▶ frontend (nginx: static React build, proxies /api) ──▶ backend (FastAPI, 2 uvicorn workers) ──▶ PostgreSQL
-                                                                     migrate (one-shot alembic upgrade head) ──▶ PostgreSQL
-mailpit (SMTP :1025, UI :8025): wired up now, used from phase 3
+browser tabs ──HTTP+SSE──> frontend (nginx: React build, proxies /api) ──> backend (FastAPI, uvicorn --workers 2) ──┐
+                                                                                                                 ├──> PostgreSQL
+Mailpit <──SMTP── worker (email outbox dispatcher + reminder scheduler) ─────────────────────────────────────────────┘
+migrate (one-shot: alembic upgrade head) runs before backend and worker start
 ```
 
-Full design, including the concurrency mechanisms, data model and edge-case decisions: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). API contract: [docs/API.md](docs/API.md). Plan: [docs/PLAN.md](docs/PLAN.md). Requirement→test map: [docs/TEST_PLAN.md](docs/TEST_PLAN.md). Every decision with its reasoning: [DECISIONS.md](DECISIONS.md).
+- **No overbooking, no double seat.** Every operation that changes who holds a seat (register, cancel, capacity change, reschedule, cancel event) runs in one transaction that first locks the event row (`SELECT … FOR UPDATE`). Postgres also enforces it on its own: `CHECK (seats_taken <= capacity)` and a partial unique index allowing one active registration per (event, normalized email).
+- **Waitlist is FIFO.** Waiting order comes from a sequence assigned under the lock. A freed seat goes to the first person waiting in the *same* transaction, so a newcomer can never take it first.
+- **Emails use a transactional outbox.** The email row is written in the same transaction as the state change, with a unique dedupe key, so it's queued exactly once. The worker sends it to Mailpit with leases, fencing, retries and backoff. Delivery is **at-least-once**: one narrow crash window can produce a duplicate with the same Message-ID, and it never loses one ([D-043](DECISIONS.md)).
+- **Reminders don't depend on in-memory timers.** The scheduler is driven entirely by the database: it locks due events with `FOR UPDATE SKIP LOCKED`, and the outbox dedupe key is the "reminder exists" record. It's restart-safe and safe with several instances. Each reminder is re-checked when sent (still confirmed? same date? not started?).
+- **Live updates use SSE** with Postgres `LISTEN/NOTIFY`, so they work across both uvicorn workers. Each stream sends a full snapshot on connect and resyncs after a lost connection.
+- **Check-in** is a single conditional `UPDATE … WHERE status='confirmed'`, so a ticket can be used exactly once even with parallel scans.
+- **Auth:**
+  - **Organizer:** one shared password, then a signed httpOnly `SameSite=Strict` cookie.
+  - **Participants:** a secret link in their emails (`/r/<token>`) to view or cancel. The ticket code and link are delivered only by email, never in an API response.
 
-## Status
+## What works (with the evidence)
 
-| Area | State |
+| Requirement (brief) | How it is proven |
 |---|---|
-| Compose stack (db, mailpit, migrate, backend, frontend), one command | ✅ works, proven by `make test-smoke` |
-| `GET /api/health` + `/health` with DB check (200 / 503 within a 2s budget) | ✅ tested |
-| Full DB schema (events, registrations, email_outbox) with constraints | ✅ migration up/down/up tested; key constraints tested directly |
-| UI: event list, event page (live seats, register, outcomes), ticket page (code, cancel), organizer login / events / dashboard (live counters, participants, edit, reschedule, cancel event), check-in screen | ✅ 38 component tests (mocked API) + manual two-tab walkthrough on the real stack; automated browser E2E is phase 8 |
-| Organizer login (cookie) + event create / list / update (capacity changes promote the waitlist) | ✅ API, tested |
-| Register by email (normalized, duplicate-safe), waitlist, cancel via manage link, FIFO promotion | ✅ API, tested |
-| Last-seat race / parallel registrations / same email in parallel / parallel cancel + register | ✅ real-Postgres concurrency tests, passed 20 runs in a row (`make test-concurrency-loop`) |
-| Emails: ticket, waitlist notice, promotion with ticket, cancellation confirmation | ✅ outbox row written in the same transaction; `worker` sends via SMTP to Mailpit with retry and backoff. Tested in Mailpit, including worker restarts. |
-| Check-in by ticket code (organizer login): exactly once, also under concurrent scans; clear errors (`ticket_not_found`, `already_checked_in`, `ticket_cancelled`, `ticket_waitlisted`, `invalid_code_format`) | ✅ API, tested incl. gated races |
-| Organizer stats (confirmed, checked in, registered, waitlisted, cancelled, free seats, email delivery counts) + registrations list | ✅ API, tested after every transition and under concurrent writes |
-| Live updates over SSE: public seats-left stream, organizer stats stream; works across uvicorn workers and processes (Postgres LISTEN/NOTIFY); snapshot on (re)connect | ✅ tested against real uvicorn processes (incl. `--workers 2`) and through nginx in the smoke test |
-| Reminder 24h before (exactly one per confirmed person per event date), reschedule (emails everyone, reminder follows the new date), event cancel | ✅ tested with a controllable clock, 3 concurrent scheduler instances, 3 real worker processes, crash/restart cases; smoke on the real stack |
-| Background worker: email outbox | ✅ (`worker` service). Reminder scheduler ❌ phase 6 |
-| E2E in real browsers (two contexts): live seat counter, last-seat race through the UI, cancel → promotion email, check-in once + live organizer counter, reschedule emails, reminder | ✅ `make e2e` (9 tests, isolated stack, real Mailpit) |
-| Stress over HTTP through nginx (2 workers): 250 concurrent registrations, then concurrent cancels + registrations | ✅ `make stress`: 17 invariants hold. Throughput for **one** event is about 120 registrations/s, with p95 about 2s at 250 simultaneous requests, because every registration for an event is serialized by its row lock. Different events don't block each other. |
+| Separate backend + frontend over the network, Postgres, one-command run, Mailpit | `make test-smoke`: a throwaway stack from scratch via `make up`, 13 probes through nginx to the 2-worker backend |
+| Register by email, cancel, waitlist, ticket with code | backend tests + browser E2E (Playwright) reading the real emails from Mailpit |
+| Registration email with ticket | `test_email_delivery.py`, E2E `register_receive_ticket_email_and_view_ticket` |
+| Repeat registration never creates a second seat | DB unique index test, 10 identical requests in parallel give 1 row, E2E in two tabs, stress with duplicate variants |
+| Full → waitlist; cancel → first in line gets the seat and an email | FIFO tests, E2E with a real cancel dialog and the promotion email from Mailpit, stress (20 parallel cancels: 20/20 promoted in queue order) |
+| Two people for the last seat → one seat, one waitlist | gated pytest (both requests proven waiting on the lock, 25 rounds), concurrency loop, UI race in two browser contexts, stress |
+| Exactly one reminder 24h before | simulated-clock tests, 3 concurrent scheduler instances, 3 real worker processes, crash between claim and send, E2E with an event 23h ahead |
+| Check-in only once; organizer counter live | gated parallel check-in (1 success, 9 rejected), E2E door tab → dashboard tab without reload, SSE across separate uvicorn processes |
+| Reschedule emails every participant | Mailpit-verified tests (confirmed, waitlisted, checked-in; not cancelled), the reminder follows the new date, E2E through the dashboard |
+| Works with two browser tabs | Playwright with two browser contexts; no-reload is asserted, not assumed |
 
-### Email delivery guarantee (read this)
+## Proof: `make proof`
 
-- **Each email is queued exactly once.** The email row is written in the same database transaction as the seat change, under a unique key, so a repeat registration or a retried request can't queue it twice.
-- **Delivery is at-least-once.** The worker marks an email sent only after the SMTP server accepted it.
-  - On a graceful restart (SIGTERM, `docker compose restart worker`), on a crash before sending, or with several workers running at once, **no duplicates** occur. All of these are tested.
-  - The one case that can produce a duplicate: the worker dies in the instant after Mailpit accepted a message but before the database recorded it. That single message is sent again, with the same Message-ID. This is tested and bounded to ≤1 message per crash.
-  - The alternative (mark first, then send) would instead silently lose a ticket. We chose duplicate over loss.
-- If Mailpit is down, registrations still succeed and emails are retried with exponential backoff (5s, 10s, 20s … capped at 1h; `failed` after 8 attempts).
+```bash
+make proof
+```
 
-To see emails: open http://localhost:8025 after registering. Tests use a separate `mailpit-test` container, so running tests never empties your dev inbox.
+It runs **everything**, keeps going after a failure, and ends with a requirement-by-requirement table computed from the JUnit results (`scripts/proof_report.py`). No part of the table is written by hand:
 
-Try live updates in a terminal: `curl -N localhost:8080/api/events/<event-id>/stream`, then register from another terminal.
+| Step | What runs |
+|---|---|
+| lint | ruff, ruff format, mypy --strict, eslint, tsc |
+| backend | pytest against a real Postgres test DB and a test Mailpit, including real uvicorn and worker processes |
+| frontend | Vitest component tests (real routes, mocked API, fake EventSource) |
+| concurrency_loop | the concurrency tests 5 times as separate processes (`PROOF_LOOP=N` to change) |
+| smoke | `make up` from scratch in an isolated project, 13 probes |
+| e2e | Playwright (Chromium), two browser contexts, against an isolated stack with real Mailpit |
+| stress | `scripts/stress.py`: 250 concurrent registrations (incl. duplicate variants) on 50 seats, then 20 cancels + 30 registrations at once; 17 invariants |
 
-### Reminder policy (read this)
+Each TEST_PLAN row gets PASS, FAIL, MISSING (it names a test that doesn't exist or didn't run) or MANUAL. Any FAIL or MISSING fails the proof.
 
-- Reminders become due **24h before** the start and go to people who are **confirmed** at that moment. Waitlisted and cancelled people don't get one, and neither do people already checked in.
-- If someone gets a seat (registers, is promoted, or the event is created/rescheduled) when the event is already less than 24h away, they get their reminder at the next scheduler tick (default every 30s).
-- **Worker downtime:** missed reminders are sent late after the restart if the event hasn't started yet, and **never** after the start.
-- **Reschedule:**
-  - Everyone confirmed, waitlisted or checked in gets a "New date" email.
-  - Unsent reminders for the old date are dropped.
-  - Exactly one reminder follows for the new date, so a person can receive one reminder per date.
-- Someone who cancels and re-registers doesn't get a second reminder for the same date.
+**Final run** (from a clean clone, see [DEVLOG](DEVLOG.md) phase 10):
 
-Known limitations so far (see [docs/REVIEW.md](docs/REVIEW.md) for evidence and proposed tests):
-- **CSRF from the same site (M1):** organizer POSTs without a body (cancel event, logout) also accept a plain HTML form submit. `SameSite=Strict` blocks other *sites*, but not another app on the same site (for example another port on `localhost`).
-- **Logout doesn't revoke (M2):** the organizer cookie is a stateless signed token, valid for up to 12h even after logout, and open organizer streams keep running.
-- **Dev defaults (M3):** compose falls back to the public dev `SESSION_SECRET` / `ORGANIZER_PASSWORD`, and `COOKIE_SECURE` is off. Nothing stops `APP_ENV=production` from using them. **Set real values in `.env` for anything but local use.**
-- **Local-time logic is only tested in UTC (M4).** Emails show UTC times, while the UI shows browser-local times (L1).
-- No rate limiting on login or registration. A duplicate registration reveals whether an email is already registered for that event (accepted trade-off, D-036).
-- Python *transitive* dependencies aren't locked. Only direct ones are pinned. npm dependencies are fully locked.
-- The Vite dev-server proxy target is fixed at `localhost:8000`.
+```
+$ make proof        # 243 s on the final run, warm Docker cache; first run longer (image pulls)
+...
+Pipeline steps
+  lint               PASS
+  backend            PASS
+  frontend           PASS
+  concurrency_loop   PASS
+  smoke              PASS
+  e2e                PASS
+  stress             PASS
+  test cases         245 passed, 0 failed, 0 skipped (backend+frontend+e2e)
+
+Platform requirements
+  ID                                 RESULT   detail
+  P1                                 PASS     3 checks
+  P2                                 PASS     2 checks
+  P3                                 PASS     1 checks
+  P4                                 PASS     2 checks
+  P5                                 PASS     4 checks
+  P6                                 PASS     7 checks
+  P7                                 MANUAL   
+
+Domain requirements
+  ID                                 RESULT   detail
+  D1                                 PASS     3 checks
+  D2                                 PASS     4 checks
+  D3                                 PASS     5 checks
+  D4                                 PASS     5 checks
+  D5                                 PASS     5 checks
+  D6                                 PASS     5 checks
+  D7                                 PASS     5 checks
+
+Behaviour requirements
+  ID                                 RESULT   detail
+  B1                                 PASS     3 checks
+  B2                                 PASS     6 checks
+  B3                                 PASS     3 checks
+  B4                                 PASS     6 checks
+  B5                                 PASS     7 checks
+  B6                                 PASS     15 checks
+  B7a                                PASS     4 checks
+  B7b                                PASS     6 checks
+  B8                                 PASS     7 checks
+
+Edge cases (ARCHITECTURE §6) → tests
+  ID                                 RESULT   detail
+  (19 edge-case rows E1–E24, all PASS: omitted here, shown in full by make proof)
+  Email: exactly-once enqueue, at... PASS     8 checks
+  Review H1: one unsendable email... PASS     3 checks
+  Review H2: manage tokens never ... PASS     2 checks
+  Security                           PASS     3 checks
+
+Requirements: 1 MANUAL, 45 PASS
+PROOF PASS
+```
+
+Other entry points: `make test` (backend + frontend), `make lint`, `make test-smoke`, `make e2e`, `make stress` (against the running dev stack), `make test-concurrency-loop N=20`.
+
+## What doesn't work, or wasn't done, and why
+
+**Open review findings** ([docs/REVIEW.md](docs/REVIEW.md) has evidence and a ready reproducing test for each). Both HIGH findings were fixed test-first. Still open:
+- **M1, same-site CSRF:** organizer POSTs without a body (cancel event, logout) also accept a plain HTML form submit from the same *site* (for example another port on `localhost`). `SameSite=Strict` only blocks other sites.
+- **M2, logout doesn't revoke:** the organizer cookie is a stateless signed token, valid for 12h even after logout.
+- **M3, dev defaults:** compose falls back to the public dev secret and password, and `COOKIE_SECURE` is off. Nothing stops `APP_ENV=production` from using them. **Set real values in `.env` for anything but local use.**
+- **M4, timezones:** local-time code paths are only tested in UTC. **L1:** emails show times in UTC, while the UI shows browser-local time.
+- **M5, scripts:** they need GNU `date`, so macOS needs coreutils.
+- **L2–L7:**
+  - L2: ticket and promotion emails aren't re-checked at send time;
+  - L3: SSE disconnect cleanup is only unit-tested, and there's no cap on connections;
+  - L4: three tests depend on timing;
+  - L5: the seat counter matching the actual number of holders is enforced by code and tests, not by the DB;
+  - L6: running without make was checked by hand but has no automated test;
+  - L7: each open stream re-queries on every change.
+
+**Limits that are part of the design:**
+- **Exactly-once email *delivery* over SMTP isn't possible.** We guarantee exactly-once queueing and at-least-once delivery ([D-043](DECISIONS.md)).
+- **One event's seat changes are serialized by its row lock.** Measured over the last four stress runs: 106–118 registrations/s for a single event, with p95 2.1–2.2s with 250 requests in flight (final run: 106.3/s, p95 2238ms). Different events don't block each other.
+- **The UI last-seat race** is two near-simultaneous clicks. Proven simultaneity is in the gated backend tests.
+- **The "24h before" timing** is tested with a simulated clock and an event 23h ahead, not by waiting a day.
+
+**Out of scope (decided, not forgotten):**
+- rate limiting;
+- multiple organizer accounts or a door-staff role (one shared password, [A1](docs/ARCHITECTURE.md));
+- per-event time zones;
+- HTML emails;
+- real SMTP providers (TLS/auth);
+- deleting events (cancel instead);
+- `Last-Event-ID` replay (a reconnect gets a fresh snapshot);
+- Firefox/WebKit/mobile E2E;
+- a CI pipeline (`make proof` is the local equivalent);
+- a lockfile for *transitive* Python dependencies (direct ones are pinned; npm is fully locked).
+
+## AI tools used
+
+The project was built with **Claude Code** (Anthropic's agentic coding tool, used in the Claude desktop app) running the **Claude Opus 5.5** model (`claude-opus-5-5`). It wrote the code, tests and docs and ran the builds, tests and probes recorded in [DEVLOG.md](DEVLOG.md), one phase per prompt from the developer. It suited this task because the assignment rewards proof over assertion: an agent that can run the whole stack (real Postgres, real browsers, real email) can be required to show evidence for each step, such as failing tests first, mutation checks and a clean-clone proof run.
+
+The developer set the phase plan and requirements, and answered the decisions the AI asked about: approving the phase 2 plan, and choosing at-least-once email delivery ([D-031](DECISIONS.md), [D-043](DECISIONS.md)).
+
+## Templates and generated files
+
+- **No project generator** (create-vite, cookiecutter, FastAPI templates) was used. Application code, tests, configs and docs were written in this repository by the AI tool described above.
+- **`backend/alembic/script.py.mako`** follows Alembic's standard revision template. The migration itself (`0001_initial.py`) was hand-written, not autogenerated ([D-002](DECISIONS.md)).
+- **Generated by tools:** `frontend/package-lock.json` and `e2e/package-lock.json` (npm), and `docs/TIMELINE.md` (by `scripts/timeline.sh` from `git log` and `DEVLOG.md`). The proof table is generated at run time by `scripts/proof_report.py`.
+- **Official base images, used unmodified:** `python:3.12-slim`, `node:22-alpine`, `nginx:1.30-alpine`, `postgres:16-alpine`, `axllent/mailpit:v1.31`, `mcr.microsoft.com/playwright:v1.64.0-noble`.
+
+## Next steps
+
+1. Fix the open MEDIUM findings with their prepared tests:
+   - CSRF guard (JSON content type or a custom header on every mutating admin call);
+   - server-side session revocation;
+   - refuse dev secrets when `APP_ENV=production`;
+   - run the time tests in a non-UTC zone.
+2. Re-validate ticket and promotion emails at send time (L2). Cap and observe SSE connections (L3).
+3. CI: run `make proof` on every push. Add Firefox/WebKit to the E2E matrix.
+4. Product: rate limiting on login and registration, a door-staff role, per-event time zone and localized email times.
+
+## Repository map
+
+```
+backend/   FastAPI app (app/), Alembic migration, pytest suite (tests/)
+frontend/  React + Vite app, Vitest tests, nginx config
+e2e/       Playwright tests (two browser contexts)
+scripts/   smoke_compose.sh, e2e.sh, stress.py, proof.sh, proof_report.py, timeline.sh
+docs/      ARCHITECTURE, API, PLAN, TEST_PLAN, REVIEW, TIMELINE
+infra/     Postgres init script (creates the test database)
+```
