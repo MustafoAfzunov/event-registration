@@ -146,3 +146,36 @@ Append-only. One entry per phase (or significant session), with a timestamp from
 - `attempts` also counts releases on graceful shutdown (D-045).
 
 **Next:** phase 4 (check-in + organizer stats). Not started.
+
+---
+
+## 2026-10-11T20:00:13+06:00 · Phase 4: Check-in and organizer stats
+
+**Done**
+- `POST /api/admin/events/{id}/checkin`: one atomic conditional UPDATE (`status='confirmed'` → `checked_in`). Input normalization (case, spaces, dashes, O→0, I/L→1). Distinct errors: `invalid_code_format` 422, `ticket_not_found` 404, `already_checked_in` 409 (with the original time), `ticket_cancelled` 409, `ticket_waitlisted` 409, `event_cancelled` 409. No event lock (D-054).
+- `GET /api/admin/events/{id}/stats`: confirmed (not arrived), checked_in, registered, waitlisted, cancelled, seats_left, email delivery counts. All from **one SQL statement** = one consistent snapshot (D-056).
+- `GET /api/admin/events/{id}/registrations[?status=]`: list with formatted codes and waitlist positions.
+- Organizer auth: the existing signed-cookie login (A1/D-011) now covers check-in, stats and the list (D-058).
+- `tests/concurrency.py::row_lock_gate`. Smoke probe #10: reads the ticket code from the real email in Mailpit, checks in via nginx, a second scan gets 409, stats show checked_in=1.
+
+**Tests:** `make lint && make test-all` → clean. **Backend 146 passed**, frontend 4, smoke 10/10.
+- Double check-in, sequential: 200 then 409 `already_checked_in` with the original timestamp.
+- Double check-in, parallel: 10 scanners, gated (all proven blocked on the row) × 10 rounds → exactly 1 × 200 + 9 × 409, every round.
+- Wrong code: 404. Malformed: 422. Cancelled and waitlisted tickets: distinct 409 codes. Other event's code: 404.
+- Check-in vs cancel race, gated, both queue orders asserted explicitly (D-059).
+- Stats after every kind of transition: a 17-step scenario (register, waitlist, duplicate, cancel waitlisted, cancel confirmed + promotion, check-in, failed check-ins, cancel with empty waitlist, re-register, capacity up with promotions, rejected capacity down, promoted person cancels, capacity down to taken, all arrive). Each step is checked against hand-computed numbers **and** an independent SQL recount **and** the invariants.
+- Stats under 40 parallel writes: every sampled snapshot satisfied the invariants.
+- **Flakiness:** the concurrency subset (check-in races + concurrent stats) passed **20/20 runs**.
+- **Mutation:** removing `status='confirmed'` from the check-in UPDATE fails 6 tests.
+
+**Surprises**
+- Bug found by a test: timestamps in error `details` used `+00:00` while bodies used `Z`. Unified via `app/timefmt.iso_utc` (D-057).
+- The first version of the check-in vs cancel test accepted either winner, which proves little. It's now deterministic per queue order.
+- Changed the API contract: `ticket_not_active` split into `ticket_cancelled`/`ticket_waitlisted` (D-055), per your "clear error codes" request.
+
+**Not done / known gaps**
+- The stats counter doesn't update live yet (phase 5 SSE). No check-in UI yet (phase 7).
+- No separate door-staff role. Check-in uses the organizer password (D-058).
+- No rate limiting on check-in attempts. The code isn't a credential (D-051), and the endpoint is organizer-only.
+
+**Next:** phase 5 (live updates via SSE). Not started.

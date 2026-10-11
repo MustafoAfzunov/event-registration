@@ -1,6 +1,7 @@
 """Domain errors and the single place that turns errors into the API error envelope:
 {"error": {"code", "message", "details"}} (docs/API.md, Conventions)."""
 
+from datetime import datetime
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -9,6 +10,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.timefmt import iso_utc
 
 
 class DomainError(Exception):
@@ -37,7 +40,10 @@ def constraint_name(exc: IntegrityError) -> str | None:
 
 def _envelope(code: str, message: str, status: int, details: dict[str, Any]) -> JSONResponse:
     body = {"error": {"code": code, "message": message, "details": details}}
-    return JSONResponse(jsonable_encoder(body), status_code=status)
+    # Same timestamp format as normal responses (UTC, 'Z').
+    return JSONResponse(
+        jsonable_encoder(body, custom_encoder={datetime: iso_utc}), status_code=status
+    )
 
 
 async def _domain_error(_: Request, exc: Exception) -> JSONResponse:

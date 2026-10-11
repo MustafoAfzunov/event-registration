@@ -300,3 +300,43 @@ Format: **D-NNN, title** · When · Decision · Why · Rejected alternatives.
 ### D-053: The registration response says the ticket is "on its way", not "was sent"
 - **When:** 2026-10-11T15:17:52+06:00
 - **Why:** at response time the email is only queued. During the Mailpit outage demo, "was sent" would have been false.
+
+---
+<!-- Phase 4 -->
+
+### D-054: Check-in = one conditional UPDATE, with no event lock
+- **When:** 2026-10-11T19:56:24+06:00
+- **Decision:** `UPDATE registrations SET status='checked_in' … WHERE event_id AND ticket_code AND status='confirmed' RETURNING …`. Only when 0 rows are updated is the row re-read, purely to choose the error. The event row is read without a lock, only to reject cancelled events.
+- **Why:**
+  - Check-in doesn't change seat ownership (a checked-in person keeps the seat), so it never touches `seats_taken` and doesn't need the per-event lock.
+  - A crowd at the door doesn't queue behind registrations. 30 parallel check-ins of different tickets all succeed (tested).
+  - The unlocked event read is safe: event cancel (phase 6) doesn't modify registration rows, so a check-in that commits concurrently is equivalent to "checked in just before the cancel".
+- **Evidence:**
+  - 10 gated scanners × 10 rounds gave exactly 1 success each round.
+  - Removing `status='confirmed'` from the UPDATE fails 6 tests, one of them via the DB constraint `ck_registrations_cancelled_has_time`.
+
+### D-055: Distinct check-in error codes `ticket_cancelled` and `ticket_waitlisted` (supersedes `ticket_not_active`, API.md / ARCHITECTURE E20)
+- **When:** 2026-10-11T19:56:24+06:00
+- **Decision:** two 409 codes instead of one generic code with `details.status`. All check-in errors: `invalid_code_format` (422), `ticket_not_found` (404, also used for a code from another event), `already_checked_in` (409, with the original time and email), `ticket_cancelled` (409), `ticket_waitlisted` (409), `event_cancelled` (409).
+- **Why:** the user asked for clear codes per case. Door staff UI (phase 7) maps each to a distinct message without parsing details.
+
+### D-056: Stats come from a single SQL statement (one snapshot); contract adds `registered` and `emails.sending`
+- **When:** 2026-10-11T19:56:24+06:00
+- **Decision:** one statement with `count(*) FILTER` plus scalar subqueries for email counts. `registered = confirmed + checked_in`, `seats_left = capacity − registered`.
+- **Why:** separate queries could observe a half-applied transition between them (e.g. a cancellation without the matching promotion). One statement = one MVCC snapshot = numbers that always satisfy the invariants, verified by sampling stats during 40 parallel writes. `registered` is the brief's word. `sending` exists in the outbox, so hiding it would make the counts not add up.
+- **Note:** `confirmed` means "holds a seat, not arrived". The UI must label it that way.
+
+### D-057: One timestamp wire format everywhere, including error details
+- **When:** 2026-10-11T19:56:24+06:00
+- **Decision:** `app/timefmt.iso_utc` (UTC, `Z`), used by response schemas and by the error envelope encoder.
+- **Why:** found by a test. `already_checked_in.details.checked_in_at` was serialized as `+00:00` while the success body used `Z`. Clients compare these strings.
+
+### D-058: Check-in is done by the organizer login (assumption A1 unchanged)
+- **When:** 2026-10-11T19:56:24+06:00
+- **Decision:** `POST /api/admin/events/{id}/checkin`, `/stats` and `/registrations` sit behind the same signed-cookie organizer auth as the other admin endpoints. There's no separate door-staff role.
+- **Why:** this is the auth model decided in ARCHITECTURE (A1, D-011). A staff role would be the first thing to add if the organizer password is shared too widely.
+
+### D-059: Race tests choose the winner deterministically via the lock queue
+- **When:** 2026-10-11T19:56:24+06:00
+- **Decision:** for check-in vs cancel, the test starts one request, waits until it's blocked on the gated row, then starts the other. Postgres grants the row in queue order, so both outcomes (check-in wins / cancel wins) are asserted explicitly instead of "someone won".
+- **Why:** a test that accepts either outcome can't detect a wrong outcome.

@@ -2,7 +2,7 @@
 
 Event registration with a waitlist, emailed tickets, check-in and a live organizer dashboard. The backend is FastAPI + PostgreSQL, and the frontend is React + Vite. Email goes to Mailpit.
 
-> **Current state: phase 3 of 10.** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats), and a background worker emails tickets, waitlist notices and promotions to Mailpit. **There is no UI beyond a health page yet (phase 7), so the manage link in emails points at a page that doesn't exist yet.** The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
+> **Current state: phase 4 of 10.** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats). A background worker emails tickets, waitlist notices and promotions to Mailpit. Organizers can check tickets in (exactly once) and read stats. **There is no UI beyond a health page yet (phase 7), so the manage link in emails points at a page that doesn't exist yet.** The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
 
 ## Quick start
 
@@ -70,7 +70,9 @@ Full design, including the concurrency mechanisms, data model and edge-case deci
 | Register by email (normalized, duplicate-safe), waitlist, cancel via manage link, FIFO promotion | ✅ API, tested |
 | Last-seat race / parallel registrations / same email in parallel / parallel cancel + register | ✅ real-Postgres concurrency tests, passed 20 runs in a row (`make test-concurrency-loop`) |
 | Emails: ticket, waitlist notice, promotion with ticket, cancellation confirmation | ✅ outbox row written in the same transaction; `worker` sends via SMTP to Mailpit with retry and backoff. Tested in Mailpit, including worker restarts. |
-| Check-in, live updates, reminders, reschedule, event cancel | ❌ not implemented yet (phases 4–6) |
+| Check-in by ticket code (organizer login): exactly once, also under concurrent scans; clear errors (`ticket_not_found`, `already_checked_in`, `ticket_cancelled`, `ticket_waitlisted`, `invalid_code_format`) | ✅ API, tested incl. gated races |
+| Organizer stats (confirmed, checked in, registered, waitlisted, cancelled, free seats, email delivery counts) + registrations list | ✅ API, tested after every transition and under concurrent writes |
+| Live updates (counter refreshes without reload), reminders, reschedule, event cancel | ❌ not implemented yet (phases 5–6) |
 | Background worker: email outbox | ✅ (`worker` service). Reminder scheduler ❌ phase 6 |
 | E2E browser tests | ❌ phase 8 |
 

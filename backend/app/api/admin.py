@@ -4,14 +4,27 @@ from fastapi import APIRouter, Depends, Response, status
 
 from app.api.deps import AppSettings, Now, SessionMaker
 from app.errors import DomainError
-from app.schemas import EventCreate, EventOut, EventUpdate, EventUpdateOut, LoginIn
+from app.models import RegistrationStatus
+from app.schemas import (
+    CheckInIn,
+    CheckInOut,
+    EmailCounts,
+    EventCreate,
+    EventOut,
+    EventUpdate,
+    EventUpdateOut,
+    LoginIn,
+    RegistrationAdminOut,
+    StatsOut,
+)
 from app.security import (
     clear_session_cookie,
     password_matches,
     require_organizer,
     set_session_cookie,
 )
-from app.services import events
+from app.services import checkin, events, stats
+from app.services.codes import format_ticket_code
 
 public = APIRouter(prefix="/api/admin", tags=["organizer"])
 router = APIRouter(
@@ -52,3 +65,43 @@ async def update_event(
 ) -> EventUpdateOut:
     result = await events.update_event(sm, event_id, body, now, settings)
     return EventUpdateOut(**result.event.model_dump(), promoted_count=result.promoted_count)
+
+
+@router.post("/events/{event_id}/checkin")
+async def check_in(event_id: uuid.UUID, body: CheckInIn, sm: SessionMaker, now: Now) -> CheckInOut:
+    result = await checkin.check_in(sm, event_id, body.code, now)
+    return CheckInOut(email=result.email, checked_in_at=result.checked_in_at)
+
+
+@router.get("/events/{event_id}/stats")
+async def event_stats(event_id: uuid.UUID, sm: SessionMaker) -> StatsOut:
+    s = await stats.event_stats(sm, event_id)
+    return StatsOut(
+        capacity=s.capacity,
+        confirmed=s.confirmed,
+        checked_in=s.checked_in,
+        registered=s.registered,
+        waitlisted=s.waitlisted,
+        cancelled=s.cancelled,
+        seats_left=s.seats_left,
+        emails=EmailCounts(**s.emails),
+    )
+
+
+@router.get("/events/{event_id}/registrations")
+async def list_registrations(
+    event_id: uuid.UUID, sm: SessionMaker, status: RegistrationStatus | None = None
+) -> list[RegistrationAdminOut]:
+    rows = await stats.list_registrations(sm, event_id, status)
+    return [
+        RegistrationAdminOut(
+            id=r.id,
+            email=r.email,
+            status=r.status,
+            ticket_code=format_ticket_code(r.ticket_code),
+            waitlist_position=r.waitlist_position,
+            created_at=r.created_at,
+            checked_in_at=r.checked_in_at,
+        )
+        for r in rows
+    ]

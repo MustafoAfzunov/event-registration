@@ -1,7 +1,7 @@
 """Request/response models. Shapes match docs/API.md."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Annotated
 
 from pydantic import (
@@ -14,6 +14,7 @@ from pydantic import (
 )
 
 from app.models import EventStatus, RegistrationStatus
+from app.timefmt import iso_utc
 
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 Description = Annotated[str, StringConstraints(max_length=5000)]
@@ -25,7 +26,7 @@ class _Strict(BaseModel):
 
 
 def _utc(value: datetime | None) -> str | None:
-    return None if value is None else value.astimezone(UTC).isoformat().replace("+00:00", "Z")
+    return None if value is None else iso_utc(value)
 
 
 class LoginIn(_Strict):
@@ -94,3 +95,50 @@ class RegistrationOut(BaseModel):
 
 class CancelOut(BaseModel):
     status: RegistrationStatus
+
+
+class CheckInIn(_Strict):
+    code: str = Field(max_length=40)
+
+
+class CheckInOut(BaseModel):
+    result: str = "checked_in"
+    email: str
+    checked_in_at: datetime
+
+    @field_serializer("checked_in_at")
+    def _ser_checked_in_at(self, value: datetime) -> str | None:
+        return _utc(value)
+
+
+class EmailCounts(BaseModel):
+    pending: int
+    sending: int
+    sent: int
+    failed: int
+    skipped: int
+
+
+class StatsOut(BaseModel):
+    capacity: int
+    confirmed: int  # holds a seat, not arrived yet
+    checked_in: int  # arrived (still holds the seat)
+    registered: int  # confirmed + checked_in
+    waitlisted: int
+    cancelled: int
+    seats_left: int  # capacity - registered
+    emails: EmailCounts
+
+
+class RegistrationAdminOut(BaseModel):
+    id: uuid.UUID
+    email: str
+    status: RegistrationStatus
+    ticket_code: str
+    waitlist_position: int | None
+    created_at: datetime
+    checked_in_at: datetime | None
+
+    @field_serializer("created_at", "checked_in_at")
+    def _ser_times(self, value: datetime | None) -> str | None:
+        return _utc(value)

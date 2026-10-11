@@ -147,13 +147,19 @@ Errors: `404 event_not_found`, `409 event_cancelled`, `422 starts_in_past`.
 
 ### `GET /api/admin/events/{event_id}/stats` — phase 4
 ```json
-200 { "capacity":50, "confirmed":35, "checked_in":12, "waitlisted":3, "cancelled":4, "seats_left":3,
-      "emails": { "pending":0, "sent":61, "failed":1, "skipped":2 } }
+200 { "capacity":50, "confirmed":35, "checked_in":12, "registered":47, "waitlisted":3,
+      "cancelled":4, "seats_left":3,
+      "emails": { "pending":0, "sending":0, "sent":61, "failed":1, "skipped":2 } }
 ```
-`registered` in the brief's wording = `confirmed + checked_in`. The UI shows both numbers.
+- `confirmed` = holds a seat and **hasn't arrived yet**.
+- `checked_in` = arrived (still holds the seat).
+- `registered` = `confirmed + checked_in` (the brief's "registered").
+- `seats_left` = `capacity − registered` (the brief's "free seats").
+
+All counts come from **one SQL statement**, i.e. one consistent snapshot, so they always satisfy `registered ≤ capacity` and `seats_left > 0 ⇒ waitlisted = 0`, even during concurrent writes.
 
 ### `GET /api/admin/events/{event_id}/registrations?status=waitlisted`
-`200 [{ "id","email","status","ticket_code","waitlist_position","created_at","checked_in_at" }]`. Waitlisted rows are ordered by queue position, the rest by `created_at`.
+`200 [{ "id","email","status","ticket_code","waitlist_position","created_at","checked_in_at" }]`. Non-waitlisted rows come first by `created_at`, then waitlisted rows in queue order with `waitlist_position` 1..n. `ticket_code` is formatted `ABCD-EFGH`. An unknown `status` → `422 validation_error`; an unknown event → `404 event_not_found`. All timestamps, including those inside error `details`, are UTC with `Z`.
 
 ### `POST /api/admin/events/{event_id}/checkin` — phase 4
 `{ "code": "abcd efgh" }`. The code is normalized: uppercase, spaces and dashes removed, O→0, I/L→1.
@@ -163,8 +169,9 @@ Errors: `404 event_not_found`, `409 event_cancelled`, `422 starts_in_past`.
 | HTTP | code | details |
 |---|---|---|
 | 404 | `ticket_not_found` | code doesn't exist for this event |
-| 409 | `already_checked_in` | `{"checked_in_at": "…", "email": "…"}` |
-| 409 | `ticket_not_active` | `{"status": "waitlisted" \| "cancelled"}` |
+| 409 | `already_checked_in` | `{"checked_in_at": "…", "email": "…"}`: the ticket was already used, at that time |
+| 409 | `ticket_cancelled` | `{"status": "cancelled", "email": "…"}` |
+| 409 | `ticket_waitlisted` | `{"status": "waitlisted", "email": "…"}`: no seat, so no entry |
 | 409 | `event_cancelled` | |
 | 422 | `invalid_code_format` | not 8 Crockford chars after normalization |
 

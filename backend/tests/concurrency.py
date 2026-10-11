@@ -49,3 +49,19 @@ async def wait_for_lock_waiters(engine: AsyncEngine, expected: int, within: floa
         raise AssertionError(
             f"only {seen}/{expected} requests were waiting on the event lock"
         ) from None
+
+
+@asynccontextmanager
+async def row_lock_gate(engine: AsyncEngine, table: str, row_id: object) -> AsyncIterator[None]:
+    """Like event_lock_gate, for one row of `table` (e.g. a registration being checked in)."""
+    assert table in {"events", "registrations", "email_outbox"}
+    async with engine.connect() as conn:
+        transaction = await conn.begin()
+        await conn.execute(
+            text(f"SELECT 1 FROM {table} WHERE id = :id FOR UPDATE"),  # noqa: S608 - fixed set
+            {"id": row_id},
+        )
+        try:
+            yield
+        finally:
+            await transaction.commit()

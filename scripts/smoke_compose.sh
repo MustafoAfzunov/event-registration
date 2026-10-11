@@ -93,4 +93,19 @@ subjects=$(curl -fsS "$mp" | grep -o '"Subject":"[^"]*"')
 [[ "$(echo "$subjects" | grep -c Smoke)" == "2" ]] || fail "expected exactly 2 emails: $subjects"
 ok "worker delivered exactly 2 emails (ticket + waitlist notice) to Mailpit"
 
+# Door flow: ticket code from the real email -> check-in via nginx -> second scan rejected -> stats.
+ticket_id=$(curl -fsS -G "http://localhost:$MAILPIT_UI_PORT/api/v1/search" \
+  --data-urlencode 'query=to:"One@Example.com" subject:"Your ticket"' | grep -o '"ID":"[^"]*"' | head -1 | cut -d'"' -f4)
+[[ -n "$ticket_id" ]] || fail "ticket email for One@Example.com not found via Mailpit search"
+code=$(curl -fsS "http://localhost:$MAILPIT_UI_PORT/api/v1/message/$ticket_id" \
+  | grep -oE 'Your ticket code: [0-9A-Z]{4}-[0-9A-Z]{4}' | awk '{print $4}')
+[[ -n "$code" ]] || fail "could not read ticket code from the email"
+c1=$(curl -s -o /dev/null -w '%{http_code}' -b "$jar" -H 'Content-Type: application/json' \
+  -d "{\"code\":\"$code\"}" "$api/admin/events/$event_id/checkin")
+c2=$(curl -s -b "$jar" -H 'Content-Type: application/json' -d "{\"code\":\"$code\"}" "$api/admin/events/$event_id/checkin")
+stats=$(curl -fsS -b "$jar" "$api/admin/events/$event_id/stats")
+[[ "$c1" == "200" && "$c2" == *'"already_checked_in"'* && "$stats" == *'"checked_in":1'* && "$stats" == *'"waitlisted":1'* ]] \
+  || fail "check-in flow: first=$c1 second=$c2 stats=$stats"
+ok "check-in with code from the email: 200, second scan 409 already_checked_in, stats checked_in=1"
+
 echo "SMOKE PASS: $passed checks"

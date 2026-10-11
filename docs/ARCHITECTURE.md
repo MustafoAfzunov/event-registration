@@ -161,7 +161,7 @@ UPDATE registrations SET status='checked_in', checked_in_at=:now
 WHERE event_id=:e AND ticket_code=:code AND status='confirmed'
 RETURNING id, email, checked_in_at;
 ```
-If 0 rows come back, the code is looked up again to choose the error: `ticket_not_found` (404), `already_checked_in` (409, includes the original `checked_in_at`), or `ticket_not_active` (409, waitlisted or cancelled). When two staff scan the same code at the same moment, Postgres row locking plus re-evaluating the `WHERE` under READ COMMITTED means exactly one `UPDATE` matches. `pg_notify` is sent in the same transaction.
+If 0 rows come back, the code is looked up again to choose the error: `ticket_not_found` (404), `already_checked_in` (409, includes the original `checked_in_at`), `ticket_cancelled` (409) or `ticket_waitlisted` (409). When two staff scan the same code at the same moment, Postgres row locking plus re-evaluating the `WHERE` under READ COMMITTED means exactly one `UPDATE` matches. `pg_notify` is sent in the same transaction.
 
 Check-in racing with cancellation: both are conditional updates on `status='confirmed'`, so exactly one wins. Cancel takes the event lock first and then the row. Check-in takes only the row. That ordering can't deadlock.
 
@@ -207,7 +207,7 @@ Under the event lock: validate the new `starts_at > now` and the event is `sched
       ▼                          ▼
   cancelled  (terminal; re-registering creates a NEW row with a new ticket and goes to the back of the line)
 ```
-Disallowed transitions (each one is an explicit error): `checked_in → cancelled` (409 `already_checked_in`), `cancelled → *` (cancel again returns 200 idempotently, with no change), `waitlisted → checked_in` (409 `ticket_not_active`).
+Disallowed transitions (each one is an explicit error): `checked_in → cancelled` (409 `already_checked_in`), `cancelled → *` (cancel again returns 200 idempotently, with no change; check-in → 409 `ticket_cancelled`), `waitlisted → checked_in` (409 `ticket_waitlisted`).
 
 Event status: `scheduled → cancelled` (terminal). It's a column on `events`. Registrations keep their own statuses for history.
 
@@ -296,7 +296,7 @@ Index: `ix_outbox_due (next_attempt_at) WHERE status IN ('pending','sending')`.
 | E17 | Someone gets a seat while the event is already <24h away | Ticket email now, reminder on the next tick (A6). |
 | E18 | Worker down across the 24h mark | Late reminder after restart if the event hasn't started, none if it has (§4.7). |
 | E19 | Check-in with wrong-event code | 404 `ticket_not_found`. Codes are scoped per event on the check-in endpoint. |
-| E20 | Check-in of a waitlisted or cancelled ticket | 409 `ticket_not_active` with the status. |
+| E20 | Check-in of a waitlisted or cancelled ticket | 409 `ticket_waitlisted` / `ticket_cancelled` (D-055). |
 | E21 | Ticket code typed with lowercase, spaces, dash, O/0 confusion | Normalized before lookup. |
 | E22 | Ticket code collision on generation | Unique index violation, retry up to 5 times with a new code (practically never happens). |
 | E23 | SSE client disconnects or reconnects | Fresh snapshot on reconnect. The server cleans up the subscriber queue in `finally`. |

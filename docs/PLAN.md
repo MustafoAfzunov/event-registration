@@ -79,20 +79,11 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
 
 ## Phase 4: Check-in and organizer stats
 - **Scope:** check-in endpoint (atomic conditional update), code normalization, stats endpoint, registrations list.
-- **Files:** `backend/app/services/checkin.py`, `backend/app/api/checkin.py`, `backend/app/services/stats.py`, tests.
-- **Tests:**
-  - `test_checkin.py::test_checkin_success`
-  - `::test_checkin_twice_second_is_409_with_original_time`
-  - `::test_concurrent_checkin_same_code_exactly_one_succeeds` (10 concurrent)
-  - `::test_checkin_waitlisted_ticket_rejected`
-  - `::test_checkin_cancelled_ticket_rejected`
-  - `::test_checkin_other_event_code_404`
-  - `::test_checkin_normalizes_input`
-  - `::test_cancel_after_checkin_rejected`
-  - `::test_checkin_vs_cancel_race_exactly_one_wins`
-  - `test_stats.py::test_stats_counts_registered_waitlisted_checked_in`
-  - `::test_stats_requires_admin`
-- **DoD:** tests pass. Counts in stats match direct SQL counts after a mixed scenario.
+- **Files (as built):** `backend/app/services/{checkin,stats}.py`, `backend/app/timefmt.py`, routes in `backend/app/api/admin.py`, tests `tests/{test_checkin,test_stats}.py`, `tests/concurrency.py::row_lock_gate`.
+- **Tests (as built):**
+  - `test_checkin.py::test_checkin_success`, `::test_checkin_twice_sequential_second_is_409_with_original_time`, `::test_concurrent_checkin_same_code_exactly_one_succeeds` (10 gated scanners × 10 rounds), `::test_concurrent_checkins_of_different_tickets_all_succeed`, `::test_checkin_wrong_code_404`, `::test_checkin_malformed_code_422`, `::test_checkin_cancelled_ticket_rejected`, `::test_checkin_waitlisted_ticket_rejected`, `::test_promoted_ticket_can_check_in`, `::test_checkin_other_event_code_404`, `::test_checkin_normalizes_input`, `::test_cancel_after_checkin_rejected`, `::test_checkin_vs_cancel_race_exactly_one_wins[checkin|cancel]`, `::test_checkin_cancelled_event_rejected`, `::test_checkin_unknown_event_404`, `::test_checkin_requires_organizer`
+  - `test_stats.py::test_stats_after_every_kind_of_transition` (17 steps, explicit expected numbers + independent recount), `::test_stats_email_counts`, `::test_stats_never_inconsistent_during_concurrent_writes`, `::test_stats_unknown_event_404`, `::test_stats_requires_admin`, `::test_registrations_list_order_filter_and_positions`
+- **DoD:** tests pass. Counts in stats match direct SQL counts after a mixed scenario. ✅ Concurrency subset passed 20/20 runs. The check-in guard was mutation-checked.
 
 ## Phase 5: Live updates (SSE)
 - **Scope:** `Broker` (LISTEN/NOTIFY, per-event subscriber queues, reconnect and resync), `pg_notify` in every mutating transaction, SSE endpoint with snapshot-on-connect, coalescing and keepalive. nginx streaming config. Uvicorn runs with 2 workers.

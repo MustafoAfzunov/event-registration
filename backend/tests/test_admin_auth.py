@@ -14,6 +14,9 @@ ADMIN_CALLS = [
         {"title": "x", "starts_at": "2099-01-01T00:00:00Z", "capacity": 1},
     ),
     ("PATCH", f"/api/admin/events/{uuid.uuid4()}", {"capacity": 3}),
+    ("POST", f"/api/admin/events/{uuid.uuid4()}/checkin", {"code": "ABCD-EFGH"}),
+    ("GET", f"/api/admin/events/{uuid.uuid4()}/stats", None),
+    ("GET", f"/api/admin/events/{uuid.uuid4()}/registrations", None),
 ]
 
 
