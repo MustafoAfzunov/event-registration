@@ -293,3 +293,45 @@ Append-only. One entry per phase (or significant session), with a timestamp from
 - The organizer participant list isn't paginated (fine for event-sized lists).
 
 **Next:** phase 8 (E2E and proof). Not started.
+
+---
+
+## 2026-10-12T03:53:20+06:00 · Phase 8: E2E and proof
+
+**Done**
+- **Playwright E2E** (`e2e/`, official image v1.64.0, Chromium, 0 retries), run by `scripts/e2e.sh` / `make e2e` against an isolated stack (tick 2s) with real Mailpit:
+  - **Two contexts:** registering in tab A updates tab B's seat counter **without reload** (asserted with a window marker).
+  - Last-seat race through the UI (3 rounds): exactly one "You're in!", one "full".
+  - **Cancel promotes:** the holder cancels from the real ticket-email link (real confirm dialog). The waitlisted person gets exactly one "A seat opened up" email, and its link shows the ticket.
+  - **Check-in once:** door tab green, then red "Already used". The organizer dashboard tab goes 0 → 1 live, without reload.
+  - **Reschedule** via the dashboard UI: "2 participants notified". Mailpit has exactly one "New date" email for the confirmed and the waitlisted person. The public tab shows the new date live.
+  - Plus: ticket email → ticket page, duplicate registration (no second seat, one email), reminder (exactly one, none for waitlisted).
+- **`scripts/stress.py`** / `make stress`: storm + mixed phase, 17 invariants (D-081).
+- **`make proof`**: all layers, then the requirement table from JUnit (D-082). The plan is machine-checked.
+
+**Full suite = `make proof` (final run):**
+- Steps: lint PASS (14s), backend PASS (191 tests, 80s), frontend PASS (38 tests), concurrency loop ×5 PASS, smoke PASS (12 probes), e2e PASS (9 tests, 34.6s), stress PASS (17/17).
+- **238/238 test cases passed. Requirements: 43 PASS, 1 MANUAL (P7). PROOF PASS.**
+- Stress numbers: 250 requests in 2.22s, 112.7 req/s, p50 1421ms, p95 2104ms, both backend workers seen. Mixed phase: 20/20 freed seats went to the oldest waitlisters, 0 newcomers jumped the queue.
+- E2E passed 3 consecutive times on fresh stacks (first run, the JUnit run, the proof run), excluding the deliberate mutant run.
+
+**Evidence the new checks have teeth**
+- A frontend mutation (event page ignores live data) failed 2 E2E tests while every backend test passed (D-084).
+- The proof report was fed a fake plan with bogus test names, which showed as MISSING and gave PROOF FAIL.
+- The first report run flagged real drift in TEST_PLAN, now fixed:
+  - P3 and P6 had no resolvable references;
+  - E1 was "see B2";
+  - there was a duplicate E1 row;
+  - a stress script name was planned in phase 0 but never created.
+
+**Surprises**
+- The browser pane / Playwright had no flakiness. The UI last-seat race is not provably simultaneous (two clicks), which is documented (D-080). The proven race is in pytest.
+- Single-event throughput is bounded by the row lock (about 115 req/s). That's an honest trade-off, now in the README.
+
+**Not done / known gaps**
+- E2E covers Chromium only (no Firefox/WebKit). No mobile viewport.
+- The E2E last-seat race isn't gated. No load test across many events at once. No soak test (long-running SSE, memory).
+- `make proof` takes about 10 minutes and needs network for the first image pulls.
+- P7 (honest README) stays manual, by nature.
+
+**Next:** phase 9 (independent review and hardening). Not started.

@@ -5,7 +5,7 @@ TEST := $(COMPOSE) --profile test run --rm --build
 
 .DEFAULT_GOAL := help
 .PHONY: help up down clean logs ps migrate test test-backend test-frontend test-smoke test-all \
-        test-concurrency-loop \
+        test-concurrency-loop e2e stress proof \
         lint lint-backend lint-frontend
 
 help: ## List targets
@@ -60,6 +60,15 @@ test-smoke: ## Boot a throwaway stack from scratch with `make up` and probe it
 	./scripts/smoke_compose.sh
 
 test-all: test test-smoke ## Everything
+
+e2e: ## Browser E2E (Playwright, 2 contexts) against an isolated throwaway stack
+	./scripts/e2e.sh
+
+stress: .env ## 200+ concurrent registrations + mixed cancels against the RUNNING dev stack (make up first)
+	$(TEST) --no-deps backend-test python /scripts/stress.py --base http://frontend --mailpit http://mailpit:8025
+
+proof: ## Run EVERYTHING and print a pass/fail table mapped to docs/TEST_PLAN.md
+	./scripts/proof.sh
 
 lint: lint-backend lint-frontend ## All linters and type checks
 

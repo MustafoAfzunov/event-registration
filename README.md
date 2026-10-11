@@ -2,7 +2,7 @@
 
 Event registration with a waitlist, emailed tickets, check-in and a live organizer dashboard. The backend is FastAPI + PostgreSQL, and the frontend is React + Vite. Email goes to Mailpit.
 
-> **Current state: phase 7 of 10.** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats). A background worker emails tickets, waitlist notices and promotions to Mailpit. Organizers can check tickets in (exactly once) and read stats. Counters update live over SSE across backend workers. A scheduler in the worker sends exactly one reminder per confirmed participant 24h before the event, and rescheduling notifies everyone. A React UI covers every flow (public event page, ticket page, organizer dashboard, check-in). The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
+> **Current state: phase 8 of 10.** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats). A background worker emails tickets, waitlist notices and promotions to Mailpit. Organizers can check tickets in (exactly once) and read stats. Counters update live over SSE across backend workers. A scheduler in the worker sends exactly one reminder per confirmed participant 24h before the event, and rescheduling notifies everyone. A React UI covers every flow (public event page, ticket page, organizer dashboard, check-in). The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
 
 ## Quick start
 
@@ -51,7 +51,24 @@ make lint         # ruff, ruff format --check, mypy --strict, eslint, tsc
 make test-smoke   # boots a throwaway stack FROM SCRATCH with `make up` and probes it
 make test-all     # test + test-smoke
 make test-concurrency-loop N=20   # concurrency tests 20x as separate processes (flakiness check)
+make e2e          # Playwright, two browser contexts, against an isolated throwaway stack (~2 min)
+make stress       # 250 concurrent registrations + mixed cancels against the RUNNING dev stack
+make proof        # EVERYTHING above, then a PASS/FAIL table per requirement of docs/TEST_PLAN.md (~10 min)
 ```
+
+`make proof` ends with a table like this (generated from the JUnit results, not written by hand):
+
+```
+Behaviour requirements
+  ID     RESULT   detail
+  B5     PASS     8 checks          <- last-seat race: gated pytest x25, UI race x3, stress, concurrency loop
+  B7b    PASS     6 checks          <- live arrived counter: real uvicorn workers, two browser tabs
+  ...
+Requirements: 1 MANUAL, 43 PASS
+PROOF PASS
+```
+
+A row whose referenced test doesn't exist shows **MISSING** and fails the proof, so the plan can't claim tests that aren't there. P7 ("honest README") is the only row that can't be automated.
 
 - **Backend tests** run against a real PostgreSQL database (`eventreg_test`, created automatically on first DB start), never SQLite or mocks. The suite refuses to run against any database whose name doesn't end in `_test`.
 - **The smoke test** (`scripts/smoke_compose.sh`) uses its own compose project, volumes and ports (18080/18000/18025/15433), so it never touches your dev stack or data. It removes everything afterwards. Set `SMOKE_NO_CACHE=1` to also rebuild images without Docker's build cache.
@@ -83,7 +100,8 @@ Full design, including the concurrency mechanisms, data model and edge-case deci
 | Live updates over SSE: public seats-left stream, organizer stats stream; works across uvicorn workers and processes (Postgres LISTEN/NOTIFY); snapshot on (re)connect | ✅ tested against real uvicorn processes (incl. `--workers 2`) and through nginx in the smoke test |
 | Reminder 24h before (exactly one per confirmed person per event date), reschedule (emails everyone, reminder follows the new date), event cancel | ✅ tested with a controllable clock, 3 concurrent scheduler instances, 3 real worker processes, crash/restart cases; smoke on the real stack |
 | Background worker: email outbox | ✅ (`worker` service). Reminder scheduler ❌ phase 6 |
-| E2E browser tests | ❌ phase 8 |
+| E2E in real browsers (two contexts): live seat counter, last-seat race through the UI, cancel → promotion email, check-in once + live organizer counter, reschedule emails, reminder | ✅ `make e2e` (9 tests, isolated stack, real Mailpit) |
+| Stress over HTTP through nginx (2 workers): 250 concurrent registrations, then concurrent cancels + registrations | ✅ `make stress`: 17 invariants hold. Throughput for **one** event is about 120 registrations/s, with p95 about 2s at 250 simultaneous requests, because every registration for an event is serialized by its row lock. Different events don't block each other. |
 
 ### Email delivery guarantee (read this)
 

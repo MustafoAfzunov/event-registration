@@ -23,7 +23,9 @@ make test-concurrency-loop N=20            # tests/test_concurrency.py N times a
 make test-all                              # test + test-smoke  <- the "full test suite" for phase reports
 make lint                                  # ruff check, ruff format --check, mypy --strict, eslint, tsc --noEmit
 make migrate                               # alembic upgrade head
-make e2e                                   # Playwright against running stack (P8+, not yet present)
+make e2e                                   # Playwright (2 browser contexts) against an isolated stack; JUnit -> reports/e2e.xml
+make stress                                # scripts/stress.py against the running dev stack
+make proof                                 # everything + requirement table from docs/TEST_PLAN.md  <- the "full test suite" from phase 8 on
 ```
 If a command here goes stale, fix this file in the same commit.
 
@@ -33,7 +35,7 @@ If a command here goes stale, fix this file in the same commit.
 3. **Log every design decision in `DECISIONS.md`** with a timestamp from `date -Iseconds`: what was decided, why, and which alternatives were rejected. Don't edit old entries. Supersede them with a new entry that references the old ID.
 4. **Append to `DEVLOG.md` at the end of each phase** with a timestamp from `date -Iseconds`: what was done, test command and summary output, what's not done, and surprises.
 5. **One commit per phase**, message `phase N: <summary>`, made only after the tests pass. Don't start the next phase in the same session turn unless the user asks.
-6. **Docs are part of the code.** If behaviour diverges from `docs/ARCHITECTURE.md` or `docs/API.md`, update the doc in the same commit and log the decision.
+6. **Docs are part of the code.** If behaviour diverges from `docs/ARCHITECTURE.md` or `docs/API.md`, update the doc in the same commit and log the decision. `docs/TEST_PLAN.md` is machine-checked: `scripts/proof_report.py` resolves every `file::test` reference against the JUnit results, so a renamed or removed test makes `make proof` fail with MISSING. Update the plan in the same commit.
 7. **Honesty over polish.** Known limitations go in the README and DEVLOG. Never describe untested behaviour as working.
 8. **Follow the plan.** Phase scope comes from `docs/PLAN.md`. Scope changes need a DECISIONS entry.
 

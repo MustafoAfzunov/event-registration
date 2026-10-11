@@ -123,6 +123,9 @@ services:
       TEST_MAILPIT_API: http://mailpit-test:8025
     volumes:
       - ./backend:/app
+      - ./scripts:/scripts:ro
+      - ./docs:/docs:ro
+      - ./reports:/reports
     depends_on:
       db:
         condition: service_healthy
@@ -143,6 +146,26 @@ services:
     build:
       context: ./frontend
       target: test
+    volumes:
+      - ./reports:/reports
+
+  # Browser E2E (profile "e2e"): run via scripts/e2e.sh against an isolated stack.
+  e2e:
+    profiles: ["e2e"]
+    build: ./e2e
+    environment:
+      BASE_URL: http://frontend
+      MAILPIT_URL: http://mailpit:8025
+      ORGANIZER_PASSWORD: ${ORGANIZER_PASSWORD:-organizer-dev-password}
+      JUNIT_FILE: /reports/e2e.xml
+    volumes:
+      - ./reports:/reports
+    shm_size: 1gb  # Chromium needs more than Docker's default 64MB /dev/shm
+    depends_on:
+      frontend:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
 
 volumes:
   pgdata:

@@ -462,3 +462,35 @@ Format: **D-NNN, title** · When · Decision · Why · Rejected alternatives.
 - **When:** 2026-10-12T03:24:56+06:00
 - **Decision:** the input is autofocused and Enter submits. On success: big green "Welcome!", email and time, input cleared, focus kept. On error: big red title per code (Already used + time, Ticket cancelled, No seat (waitlist), Unknown code, Not a ticket code), input text selected for quick correction. There's a live "N / M arrived" counter.
 - **Why:** typing replaces a scanner (brief). Staff must read the result from a distance and move on to the next person without touching the mouse.
+
+---
+<!-- Phase 8 -->
+
+### D-079: E2E = Playwright in its official image, against an isolated compose stack
+- **When:** 2026-10-12T03:53:20+06:00
+- **Decision:** `scripts/e2e.sh` starts project `eventreg-e2e` (own ports, volumes, `SCHEDULER_TICK_SECONDS=2`) from `down -v`. It runs `mcr.microsoft.com/playwright:v1.64.0-noble` with `@playwright/test` 1.64.0 (version-matched) on the compose network (`BASE_URL=http://frontend`, that stack's Mailpit), then tears everything down. Settings: Chromium, 1 worker, **0 retries**, browser timezone UTC. Every test uses its own event and emails.
+- **Why:** real browsers, the real nginx → 2 workers → Postgres path, real SMTP. The developer's stack is never touched. Retries would hide flakiness. Manage links from emails are opened by *path*, because the link host (`PUBLIC_BASE_URL`) is the developer-facing URL, not the in-network one.
+
+### D-080: "Two tabs" = two browser contexts; "no reload" is asserted, not assumed
+- **When:** 2026-10-12T03:53:20+06:00
+- **Decision:** each tab is its own `browser.newContext()` (separate cookies and storage, like two people). The organizer contexts get the login cookie from an API login. Live tests mark `window` before the change and assert the marker survives, which proves the same document updated.
+- **Honest limit:** the last-seat race through the UI fires two clicks via `Promise.all`. They overlap closely but aren't *proven* simultaneous. Proven simultaneity lives in the gated pytest tests (pg_locks). The UI test proves both outcomes are rendered correctly (3 rounds).
+
+### D-081: `scripts/stress.py` checks invariants through the API, over HTTP, against the multi-worker stack
+- **When:** 2026-10-12T03:53:20+06:00
+- **Decision:** 200 distinct + 10×5 duplicate (case/space variants) registrations at once on a 50-seat event. Then 20 cancels (manage links from the real ticket emails in Mailpit) + 30 registrations at once. 17 invariants, exit 1 on any violation. It runs in `make stress` (dev stack) and in `make proof` (E2E stack).
+- **Result recorded:** about 113–118 req/s for one event, p95 about 2.1s with 250 requests in flight. That's the cost of serializing an event's seat changes on its row lock (D-003). Different events don't contend. Accepted for this scale and documented in the README.
+
+### D-082: `make proof` derives the requirement table from JUnit results; TEST_PLAN is machine-checked
+- **When:** 2026-10-12T03:53:20+06:00
+- **Decision:** `scripts/proof.sh` runs lint, backend (JUnit), frontend (JUnit), concurrency loop (N=5), smoke, E2E (JUnit) and stress, continuing after failures. `scripts/proof_report.py` resolves every reference in `docs/TEST_PLAN.md` (`file::name`, `::name`, params, `<placeholders>`, step words) and marks each row PASS / FAIL / MISSING / MANUAL. Any FAIL or MISSING makes the proof fail.
+- **Why:** the brief asks for proof and an honest README. A hand-written "all green" table can drift. This one can't claim a test that doesn't exist, which was verified with a fake plan containing bogus names (they show as MISSING). P7 (honest README) is the only MANUAL row.
+
+### D-083: Test reports in `reports/` (gitignored, mode 777)
+- **When:** 2026-10-12T03:53:20+06:00
+- **Decision:** containers running as different users (backend uid 10001, node/playwright root) write JUnit/JSON there.
+- **Why:** simplest way to collect results without host tooling. Permissions only matter on the developer machine.
+
+### D-084: E2E mutation evidence
+- **When:** 2026-10-12T03:53:20+06:00
+- **Decision/result:** a frontend-only regression (event page ignores live data) passes every backend test but fails 2 E2E tests: the live seat counter in tab B, and the new date shown live after a reschedule. The other 7 correctly still pass. Restored.

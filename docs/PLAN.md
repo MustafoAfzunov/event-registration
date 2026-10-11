@@ -131,19 +131,20 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
 - **DoD:** every user-facing flow in the brief is clickable in the browser on `localhost:8080`. Tests, `tsc` and eslint are clean. ✅ A manual two-tab walkthrough on the real stack is recorded in DEVLOG phase 7.
 
 ## Phase 8: E2E and proof
-- **Scope:** Playwright suite against the running compose stack, reading real emails through the Mailpit API. A load/stress script for the concurrency claim with printed results. CI-style one-liner `make e2e`.
-- **Files:** `e2e/{package.json,playwright.config.ts}`, `e2e/tests/*.spec.ts`, `e2e/helpers/mailpit.ts`, `scripts/stress_last_seat.py`.
-- **Tests:**
-  - `registration.spec.ts::register_receive_ticket_email_and_view_ticket`
-  - `registration.spec.ts::duplicate_registration_no_second_seat_no_second_email`
-  - `waitlist.spec.ts::full_event_waitlists_then_promotes_on_cancel_with_email`
-  - `two_tabs.spec.ts::checkin_in_tab_b_updates_organizer_counter_in_tab_a_live` (two browser contexts, no reload)
-  - `two_tabs.spec.ts::two_participants_race_for_last_seat_one_confirmed_one_waitlisted`
+- **Scope:**
+  - Playwright suite (official image, Chromium) in **two browser contexts**, against an isolated compose stack (scheduler tick 2s), reading real emails through that stack's Mailpit API.
+  - `scripts/stress.py` against the running stack through nginx (2 workers), with printed invariants.
+  - `make proof` runs everything and prints a requirement table generated from the JUnit results.
+- **Files (as built):** `e2e/{package.json,package-lock.json,playwright.config.ts,tsconfig.json,Dockerfile}`, `e2e/tests/{helpers,two_tabs.spec,registration.spec,waitlist.spec,checkin.spec,reschedule.spec,reminder.spec}.ts`, `scripts/{e2e.sh,stress.py,proof.sh,proof_report.py}`, compose service `e2e` (profile e2e), Makefile `e2e`, `stress`, `proof`.
+- **Tests (as built):**
+  - `two_tabs.spec.ts::register_in_tab_a_updates_seat_counter_in_tab_b_live`, `::checkin_in_tab_b_updates_organizer_counter_in_tab_a_live`, `::two_participants_race_for_last_seat_one_confirmed_one_waitlisted` (3 rounds)
+  - `registration.spec.ts::register_receive_ticket_email_and_view_ticket`, `::duplicate_registration_no_second_seat_no_second_email`
+  - `waitlist.spec.ts::full_event_waitlists_then_promotes_on_cancel_with_email` (real confirm dialog; promotion email from Mailpit, its link shows the ticket)
   - `checkin.spec.ts::second_checkin_rejected`
-  - `reschedule.spec.ts::reschedule_emails_every_participant`
-  - `reminder.spec.ts::event_23h_ahead_gets_exactly_one_reminder` (worker tick set to 2s in the test env, then waits 3 ticks and asserts the count is still 1)
-  - `scripts/stress_last_seat.py`: 200 concurrent HTTP registrations for capacity 50 against the real stack. Prints confirmed/waitlisted counts and runs the invariant SQL. The exit code is non-zero on any violation.
-- **DoD:** `make e2e` passes 3 consecutive times on a fresh `docker compose down -v && up`. The stress output is pasted into DEVLOG.
+  - `reschedule.spec.ts::reschedule_emails_every_participant` (via dashboard UI; public tab shows the new date live)
+  - `reminder.spec.ts::event_23h_ahead_gets_exactly_one_reminder`
+  - `scripts/stress.py`: 200 distinct + 10×5 duplicate registrations at once on a 50-seat event, then 20 cancels + 30 registrations at once. 17 invariants: confirmed ≤ limit, no duplicate emails, no free seat while people wait, positions 1..n, API = list, FIFO promotion, no queue jumping, all 2xx. Exit 1 on any violation.
+- **DoD:** `make proof` passes with every TEST_PLAN row PASS except the manual P7. E2E passed 3 consecutive times on fresh stacks (`scripts/e2e.sh` always starts from `down -v`). Results are pasted into DEVLOG.
 
 ## Phase 9: Independent review and hardening
 - **Scope:** a fresh-context reviewer (separate agent session, or `/code-review high`) audits concurrency, transactions, error handling, security (cookie flags, token leakage, CSRF, SQL injection, PII in public endpoints, logging of secrets) and docs-vs-code drift. Every finding is fixed with a regression test or explicitly rejected with a reason.
