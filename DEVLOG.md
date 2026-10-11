@@ -179,3 +179,43 @@ Append-only. One entry per phase (or significant session), with a timestamp from
 - No rate limiting on check-in attempts. The code isn't a credential (D-051), and the endpoint is organizer-only.
 
 **Next:** phase 5 (live updates via SSE). Not started.
+
+---
+
+## 2026-10-12T02:16:50+06:00 · Phase 5: Live updates (SSE)
+
+**Done**
+- `app/live/broker.py`: one LISTEN connection per backend process. It wakes only the subscribers of the changed event, reconnects after 1s, and resyncs everyone after a reconnect. `notify_event_changed` is called inside the transaction of register, cancel (incl. promotion), capacity/title update, check-in, and email completions.
+- `app/live/sse.py` + `app/api/stream.py`:
+  - `GET /api/events/{id}/stream` (public `availability`: seats left, waitlist, status).
+  - `GET /api/admin/events/{id}/stream` (organizer `stats`).
+  - Behaviour: `retry: 3000`, snapshot on connect, gap-closing wake, changed-only frames, keepalive comments, 401/404 as JSON before streaming, `session_expired` frame at login expiry.
+- Uvicorn `--timeout-graceful-shutdown 5`. Pure-ASGI `X-Backend-Pid` header outside production.
+- Test infrastructure: real uvicorn processes (`a`, `b` single-worker; `multi` with `--workers 2`), an SSE client over real HTTP. Smoke probe #11: 6 streams through nginx to the 2-worker compose backend.
+
+**Tests:** `make lint && make test-all` → clean. **Backend 160 passed** (14 new live tests), frontend 4, smoke 11/11.
+- Two clients (organizer and public streams, on two different backend processes, with writes from a third process) all receive registration, waitlist, cancellation+promotion and check-in. The public streams correctly stay silent on check-in.
+- `--workers 2`: streams proven on both worker pids (via the header). A write handled by one worker reached streams on the other.
+- No leaking: wire level (5 writes to another event give 0 frames) and broker level (other event's subscriber not woken).
+- Reconnect, including to a *different* process: the first frame is the current snapshot.
+- Listener killed via `pg_terminate_backend` + immediate write: the change still arrives (resync).
+- Rollback: no NOTIFY delivered. Commit: delivered.
+- **Flakiness:** `test_live.py` passed **10/10 runs** (real processes).
+- **Mutation:**
+  - No notify on registration: 3 tests fail.
+  - Broker ignores event id: the routing test fails. The wire-level leak test can't see it, as predicted, because unchanged snapshots aren't re-sent. That's why the broker test exists.
+  - No resync after reconnect: the outage test fails 3/3.
+- **Real stack:** 6 SSE streams via nginx, served by 2 distinct workers, all received the update.
+
+**Surprises**
+- httpx's ASGI transport can't test streams (it buffers whole responses), which forced real-server tests. That's a better proof anyway.
+- `BaseHTTPMiddleware` was avoided for the pid header because of known streaming/disconnect issues. Pure ASGI instead.
+
+**Not done / known gaps**
+- No frontend consumer yet (`EventSource` hook + screens are phase 7).
+- The pending→sending email transition isn't pushed live (D-063).
+- One snapshot query per change per open stream. Fine for this scale. Not load-tested beyond the smoke test (phase 8).
+- No `Last-Event-ID` replay, by design (D-066).
+- The phase 2 concurrency loop wasn't re-run 20× this phase. The full suite (which includes those tests once) passed after adding `pg_notify` to the locked transactions.
+
+**Next:** phase 6 (scheduler: reminders, reschedule, event cancel). Not started.

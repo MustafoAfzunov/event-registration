@@ -22,6 +22,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.errors import DomainError, not_found
+from app.live.broker import notify_event_changed
 from app.models import Event, EventStatus, Registration, RegistrationStatus
 from app.services.codes import normalize_ticket_input
 
@@ -70,7 +71,7 @@ async def check_in(
             )
         ).one_or_none()
         if won is not None:
-            # pg_notify for live counters is added here in phase 5.
+            await notify_event_changed(session, event_id)  # arrived counter, on commit
             return CheckInResult(email=won.email, checked_in_at=won.checked_in_at)
 
         # Nothing updated: find out why (read only, to pick the error).

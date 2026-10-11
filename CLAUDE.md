@@ -46,6 +46,7 @@ If a command here goes stale, fix this file in the same commit.
 - Status transitions follow the state machine in ARCHITECTURE §4.10. Anything else raises a typed domain error that maps to the `code` in `docs/API.md`.
 - DB constraints are the last line of defence. Don't remove or loosen one to make code work.
 - Concurrency tests must use **separate DB connections or real HTTP**, never a shared session. To claim "at the same moment", use `tests/concurrency.py` (`event_lock_gate` + `wait_for_lock_waiters`), which proves via `pg_locks` that all N requests were blocked on the lock before releasing them. Finish every concurrency test with `tests/invariants.py::assert_invariants`.
+- Any write that changes what a stream shows must call `notify_event_changed(session, event_id)` inside its transaction (`app/live/broker.py`). SSE tests must use real uvicorn processes (`live_servers` fixture), because httpx's ASGI transport buffers whole responses.
 - Services own their transactions (`async with sessionmaker() as s, s.begin()`). Routes never open sessions for writes.
 
 ## Coding conventions

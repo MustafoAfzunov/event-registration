@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     session_max_age_seconds: int = 12 * 3600
     cookie_secure: bool = False  # True behind HTTPS; local compose is plain HTTP
 
+    # Live updates (SSE): comment sent this often so proxies keep idle streams open.
+    sse_keepalive_seconds: float = 15.0
+
     # Used to build links in emails, e.g. the manage link /r/{token}.
     public_base_url: str = "http://localhost:8080"
 

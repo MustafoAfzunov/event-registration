@@ -2,6 +2,7 @@
 (DECISIONS D-011). Participants never use this; they hold capability links (D-012)."""
 
 import hmac
+from datetime import datetime, timedelta
 
 from fastapi import Request, Response
 from itsdangerous import BadSignature, TimestampSigner
@@ -50,6 +51,22 @@ def is_organizer(request: Request) -> bool:
     except BadSignature:  # includes SignatureExpired
         return False
     return hmac.compare_digest(payload, _PAYLOAD)
+
+
+def organizer_session_expires_at(request: Request) -> datetime | None:
+    """When the current organizer cookie stops being valid (long-lived SSE streams are
+    closed at that moment instead of outliving the login)."""
+    settings: Settings = request.app.state.settings
+    value = request.cookies.get(COOKIE_NAME)
+    if not value:
+        return None
+    try:
+        _, signed_at = _signer(settings).unsign(
+            value, max_age=settings.session_max_age_seconds, return_timestamp=True
+        )
+    except BadSignature:
+        return None
+    return signed_at + timedelta(seconds=settings.session_max_age_seconds)
 
 
 async def require_organizer(request: Request) -> None:

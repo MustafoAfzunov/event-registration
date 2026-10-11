@@ -340,3 +340,46 @@ Format: **D-NNN, title** · When · Decision · Why · Rejected alternatives.
 - **When:** 2026-10-11T19:56:24+06:00
 - **Decision:** for check-in vs cancel, the test starts one request, waits until it's blocked on the gated row, then starts the other. Postgres grants the row in queue order, so both outcomes (check-in wins / cancel wins) are asserted explicitly instead of "someone won".
 - **Why:** a test that accepts either outcome can't detect a wrong outcome.
+
+---
+<!-- Phase 5 -->
+
+### D-060: Two SSE streams: public "availability" and organizer "stats" (refines D-010 / API.md single public stream)
+- **When:** 2026-10-12T02:14:10+06:00
+- **Decision:**
+  - `GET /api/events/{id}/stream` (public): `event_id, status, starts_at, capacity, seats_left, waitlist_count`.
+  - `GET /api/admin/events/{id}/stream` (organizer cookie): the full `/stats` body plus `event_id`.
+- **Why:** you asked for both. The public page needs only availability. Attendance (`checked_in`) and email delivery numbers are organizer information. Because only changed snapshots are sent, a check-in produces no public frame.
+
+### D-061: SSE tests run against real uvicorn processes, never the in-process ASGI transport
+- **When:** 2026-10-12T02:14:10+06:00
+- **Decision:** a module-scoped fixture starts three servers on the test DB: two single-worker servers (`a`, `b`) for deterministic cross-process checks, and one `--workers 2` server exactly like compose. Writes come from the test's in-process app, a separate process.
+- **Why:**
+  - `httpx.ASGITransport` buffers the whole response, so it can't test an endless stream.
+  - With separate processes, an update can only arrive through Postgres LISTEN/NOTIFY, never through shared memory.
+  - The `--workers 2` test proves streams were held by **both** pids via an `X-Backend-Pid` header. That header is added by a pure-ASGI middleware only when `APP_ENV != production`, because `BaseHTTPMiddleware` is known to interfere with streaming and disconnects.
+
+### D-062: The listener reconnects and resyncs; signals carry only the event id
+- **When:** 2026-10-12T02:14:10+06:00
+- **Decision:** the broker's LISTEN connection reconnects after 1s and then wakes **every** subscriber. Notifications carry only the event id, and each stream re-reads its snapshot.
+- **Why:** NOTIFYs sent while no one listens are gone. Re-reading after reconnect makes those gaps harmless. Tested by `pg_terminate_backend` on all LISTEN connections followed by an immediate write. A mutation without the resync fails that test 3/3 times.
+
+### D-063: Email completions notify; claims don't
+- **When:** 2026-10-12T02:14:10+06:00
+- **Decision:** the dispatcher's fenced completion (sent / retry / failed / released) calls `pg_notify` in the same transaction. The claim (`pending → sending`) doesn't.
+- **Why:** email counts are part of the organizer stats, so the final outcome must show up live. Notifying on every claim would double the traffic for a transient state the organizer doesn't act on.
+
+### D-064: Organizer streams close when the login expires
+- **When:** 2026-10-12T02:14:10+06:00
+- **Decision:** the expiry is computed from the signed cookie timestamp at connect. When reached, the stream sends `event: session_expired` and ends.
+- **Why:** otherwise a stream opened just before the 12h expiry would keep delivering organizer data indefinitely. Tested with `SESSION_MAX_AGE_SECONDS=2`.
+
+### D-065: Uvicorn `--timeout-graceful-shutdown 5`
+- **When:** 2026-10-12T02:14:10+06:00
+- **Decision:** set in the backend image's CMD.
+- **Why:** SSE responses never finish on their own. Without a limit, `docker compose restart backend` waits for every open browser tab. Clients reconnect automatically (`retry: 3000`) and get a fresh snapshot.
+
+### D-066: No `Last-Event-ID` replay
+- **When:** 2026-10-12T02:14:10+06:00
+- **Decision:** frames carry no `id:`. A reconnect gets the current snapshot.
+- **Why:** the client needs current state, not history. Replay would need a per-event change log, which is extra state that can disagree with the tables.

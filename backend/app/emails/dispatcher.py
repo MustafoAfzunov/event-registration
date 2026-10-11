@@ -32,6 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.clock import Clock
 from app.config import Settings
 from app.emails.smtp import Sender, build_message
+from app.live.broker import notify_event_changed
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +125,9 @@ class Dispatcher:
             result = await session.execute(
                 statement, {"id": item.id, "token": item.attempts, **params}
             )
+            if getattr(result, "rowcount", 0):
+                # Email counts are part of the organizer's live stats.
+                await notify_event_changed(session, item.event_id)
         if not getattr(result, "rowcount", 0):
             logger.warning("outbox %s: lost the claim (lease expired and re-claimed)", item.id)
             return False

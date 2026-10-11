@@ -189,9 +189,13 @@ Under the event lock: validate the new `starts_at > now` and the event is `sched
 
 - **Writers** call `SELECT pg_notify('event_changed', :event_id)` inside their transaction. Postgres delivers it **only on commit** and drops it on rollback.
 - **Each API process** runs one `Broker`: a dedicated autocommit psycopg connection doing `LISTEN event_changed`, plus a map from `event_id` to a set of `asyncio.Queue`s, one per open SSE connection. If the listener connection drops, it reconnects with backoff and pushes a `resync` to every subscriber, because notifications sent during the gap are lost.
-- **The SSE handler** (`GET /api/events/{id}/stream`) sends a full **snapshot** of counts immediately on connect. On each notification it drains its queue (coalescing bursts), re-queries the counts, and sends a snapshot only if they changed. Every 15s it sends a `: keepalive` comment. The protocol is snapshot-based, not delta-based, so lost or duplicated notifications can't corrupt client state, and a reconnect just yields a fresh snapshot.
+- **Two streams** (phase 5, D-060): public `GET /api/events/{id}/stream` (seats left, waitlist count, status; no PII) and organizer `GET /api/admin/events/{id}/stream` (full stats incl. email counts).
+- **Gap closing:** the first snapshot is computed before subscribing (so 401/404 stay JSON), then the subscription is woken once immediately, so a change committed in that gap is still sent.
+- **The SSE handler** sends a full **snapshot** of counts immediately on connect. On each notification it drains its queue (coalescing bursts), re-queries the counts, and sends a snapshot only if they changed. Every 15s it sends a `: keepalive` comment. The protocol is snapshot-based, not delta-based, so lost or duplicated notifications can't corrupt client state, and a reconnect just yields a fresh snapshot.
 - **nginx** uses `proxy_buffering off; proxy_read_timeout 1h;` for the stream location.
-- **The worker** (which doesn't serve SSE) also calls `pg_notify` when it changes something visible, though in practice reminders don't change counts.
+- **The worker** (which doesn't serve SSE) calls `pg_notify` when an email row is completed (sent, retry, failed, released), because email counts are part of the organizer stats. A claim (`pending → sending`) doesn't notify, so the organizer may briefly see a stale pending/sending split.
+- **Organizer streams end when the login expires** (`session_expired` frame). Uvicorn runs with `--timeout-graceful-shutdown 5`, so open streams don't block a restart.
+- **Signals vs data:** a notification carries only the event id. Every subscriber re-reads its snapshot from the DB. Lost, duplicated or coalesced signals therefore can't produce wrong numbers, and a listener reconnect wakes every subscriber (resync).
 
 ### 4.10 Registration state machine
 

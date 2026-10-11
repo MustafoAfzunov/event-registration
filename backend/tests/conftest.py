@@ -24,6 +24,7 @@ from app.db import make_engine
 from app.emails.dispatcher import Dispatcher
 from app.emails.smtp import Sender, SmtpSender
 from app.main import create_app
+from tests.live_server import LiveServer, run_server, server_env
 from tests.mailpit import Mailpit
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -148,3 +149,20 @@ def make_dispatcher(app: FastAPI, clock: FixedClock, smtp: SmtpSender) -> Callab
         return Dispatcher(app.state.sessionmaker, sender or smtp, clock, settings)
 
     return build
+
+
+@pytest.fixture(scope="module")
+def live_servers(
+    test_db_url: str, tmp_path_factory: pytest.TempPathFactory
+) -> Iterator[dict[str, LiveServer]]:
+    """Three real backends sharing the test DB, started once per test module:
+    'a' and 'b' are separate single-worker processes (deterministic cross-process checks);
+    'multi' is `uvicorn --workers 2`, exactly like the compose backend."""
+    env = server_env(test_db_url, ORGANIZER_PASSWORD)
+    logs = tmp_path_factory.mktemp("uvicorn")
+    with (
+        run_server(env, 1, logs / "a.log") as a,
+        run_server(env, 1, logs / "b.log") as b,
+        run_server(env, 2, logs / "multi.log") as multi,
+    ):
+        yield {"a": a, "b": b, "multi": multi}

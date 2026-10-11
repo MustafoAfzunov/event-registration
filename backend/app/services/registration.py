@@ -13,6 +13,7 @@ from app.config import Settings
 from app.emails import templates
 from app.emails.outbox import dedupe_key, enqueue
 from app.errors import DomainError, constraint_name, not_found
+from app.live.broker import notify_event_changed
 from app.models import (
     EmailKind,
     Event,
@@ -148,6 +149,7 @@ async def _register_once(
         email=rendered,
         now=now,
     )
+    await notify_event_changed(session, event_id)  # delivered on commit (live counters)
     return RegisterResult(registration, True, position)
 
 
@@ -228,4 +230,5 @@ async def cancel(
             await add_seats_taken(session, event, -1, now)
             # Same transaction: the freed seat can never be grabbed by a newcomer first.
             await promote_waitlisted(session, event, now, settings)
+        await notify_event_changed(session, event.id)
         return registration

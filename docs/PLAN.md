@@ -86,18 +86,17 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
 - **DoD:** tests pass. Counts in stats match direct SQL counts after a mixed scenario. ✅ Concurrency subset passed 20/20 runs. The check-in guard was mutation-checked.
 
 ## Phase 5: Live updates (SSE)
-- **Scope:** `Broker` (LISTEN/NOTIFY, per-event subscriber queues, reconnect and resync), `pg_notify` in every mutating transaction, SSE endpoint with snapshot-on-connect, coalescing and keepalive. nginx streaming config. Uvicorn runs with 2 workers.
-- **Files:** `backend/app/live/{broker.py,sse.py}`, `backend/app/api/stream.py`, `frontend/nginx.conf` update, tests.
-- **Tests:**
-  - `test_live.py::test_stream_sends_snapshot_on_connect`
-  - `::test_checkin_pushes_update_to_stream`
-  - `::test_registration_pushes_update_to_stream`
-  - `::test_notify_not_delivered_on_rollback`
-  - `::test_fanout_across_two_brokers` (two independent Broker instances = two processes; a write on one connection reaches both)
-  - `::test_broker_reconnect_triggers_resync`
-  - `::test_stream_unknown_event_404`
-  - `test_live_multiworker.py::test_update_reaches_client_on_other_uvicorn_worker` (against the running compose backend with 2 workers: open 4 streams, check in, all 4 receive the update)
-- **DoD:** with the stack running, `curl -N localhost:8080/api/events/{id}/stream` prints a new `stats` frame within 1s of a check-in made via another terminal.
+- **Scope:** `Broker` (LISTEN/NOTIFY, per-event subscriber queues, reconnect and resync), `pg_notify` in every mutating transaction (incl. email completions), public + organizer SSE endpoints with snapshot-on-connect, coalescing, keepalive, and session-expiry close. nginx streaming config. Uvicorn runs with 2 workers.
+- **Files (as built):** `backend/app/live/{broker,sse}.py`, `backend/app/api/stream.py`, pure-ASGI `X-Backend-Pid` header (non-production), tests `tests/{test_live,sse,live_server}.py`.
+- **Tests (as built; all against real uvicorn processes, see D-061):**
+  - `test_live.py::test_public_stream_sends_snapshot_on_connect`, `::test_organizer_stream_sends_snapshot_on_connect`
+  - `::test_two_clients_receive_registration_cancellation_and_checkin` (organizer + public streams on two separate backend processes; writes from a third)
+  - `::test_update_reaches_every_worker_of_a_multi_worker_server` (`uvicorn --workers 2`, streams proven on both pids)
+  - `::test_other_events_do_not_leak_into_a_stream`, `::test_broker_routes_signals_by_event_id`
+  - `::test_reconnect_gets_current_snapshot`, `::test_listener_connection_loss_is_healed_and_resynced`, `::test_notification_only_on_commit`
+  - `::test_email_delivery_updates_organizer_stream`, `::test_keepalive_comments_on_idle_stream`, `::test_stream_errors_are_json_before_streaming`, `::test_organizer_stream_ends_when_login_expires`, `::test_stream_releases_subscription_when_client_goes_away`
+  - smoke: 6 SSE streams through nginx to the compose backend (2 workers) all receive a registration
+- **DoD:** with the stack running, `curl -N localhost:8080/api/events/{id}/stream` prints a new frame within 1s of a change made via another terminal. ✅ The smoke test checks this on the real stack.
 
 ## Phase 6: Scheduler (reminders, reschedule, event cancel)
 - **Scope:** reminder tick (INSERT…SELECT…ON CONFLICT DO NOTHING), reminder send-time guard, reschedule endpoint (version bump and emails), cancel-event endpoint, catch-up semantics.

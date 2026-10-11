@@ -91,20 +91,31 @@ Side effects: if the registration was `confirmed`, the first waitlisted person i
 
 ---
 
-## Live stream — phase 5
+## Live streams (SSE) — phase 5
 
-### `GET /api/events/{event_id}/stream`
-`Content-Type: text/event-stream`. Public, counts only, no PII.
+Both use `Content-Type: text/event-stream` and work with the browser's `EventSource`.
+- **Protocol:** on connect, `retry: 3000` plus one full snapshot. After that, a new snapshot whenever the data changes (identical snapshots aren't re-sent; bursts are coalesced). A `: keepalive` comment every `SSE_KEEPALIVE_SECONDS` (15s).
+- **Reconnects:** a reconnecting client simply gets the current snapshot. There are no deltas and no `Last-Event-ID` replay.
+- **Errors:** 401 and 404 are normal JSON errors returned *before* the stream starts.
+
+### `GET /api/events/{event_id}/stream` (public; for the event page)
 ```
-event: stats
-data: {"event_id":"…","capacity":50,"confirmed":47,"checked_in":12,"waitlisted":3,"seats_left":0,"starts_at":"…","status":"scheduled","schedule_version":2}
+retry: 3000
+event: availability
+data: {"event_id":"…","status":"scheduled","starts_at":"…Z","capacity":50,"seats_left":3,"waitlist_count":0}
 
 : keepalive
 ```
-- The first `stats` message is sent immediately on connect (snapshot).
-- After that, a message is sent whenever the counts change. Bursts are coalesced.
-- `confirmed` counts seat holders who haven't checked in. `checked_in` counts arrivals. `seats_left = capacity − confirmed − checked_in`.
-- `404 event_not_found` (plain JSON) if the event doesn't exist.
+There is no personal data and no attendance numbers. A check-in doesn't produce a frame here, because seats and waitlist don't change.
+
+### `GET /api/admin/events/{event_id}/stream` (organizer cookie)
+```
+event: stats
+data: {…same body as GET /api/admin/events/{id}/stats…, "event_id":"…"}
+```
+It updates on registration, cancellation, promotion, capacity change, check-in, and email delivery outcomes. When the organizer login expires, the server sends `event: session_expired` and closes the stream, so the client should re-login and reconnect.
+
+**Fan-out across processes:** every write calls `pg_notify('event_changed', event_id)` inside its transaction. Each backend process LISTENs on its own connection, so a change made by any process (any uvicorn worker, the email worker, another replica) reaches streams on all of them (ARCHITECTURE §4.9).
 
 ---
 

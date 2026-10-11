@@ -2,7 +2,7 @@
 
 Event registration with a waitlist, emailed tickets, check-in and a live organizer dashboard. The backend is FastAPI + PostgreSQL, and the frontend is React + Vite. Email goes to Mailpit.
 
-> **Current state: phase 4 of 10.** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats). A background worker emails tickets, waitlist notices and promotions to Mailpit. Organizers can check tickets in (exactly once) and read stats. **There is no UI beyond a health page yet (phase 7), so the manage link in emails points at a page that doesn't exist yet.** The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
+> **Current state: phase 5 of 10.** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats). A background worker emails tickets, waitlist notices and promotions to Mailpit. Organizers can check tickets in (exactly once) and read stats. Counters update live over SSE across backend workers. **There is no UI beyond a health page yet (phase 7), so the manage link in emails points at a page that doesn't exist yet.** The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
 
 ## Quick start
 
@@ -72,7 +72,8 @@ Full design, including the concurrency mechanisms, data model and edge-case deci
 | Emails: ticket, waitlist notice, promotion with ticket, cancellation confirmation | ✅ outbox row written in the same transaction; `worker` sends via SMTP to Mailpit with retry and backoff. Tested in Mailpit, including worker restarts. |
 | Check-in by ticket code (organizer login): exactly once, also under concurrent scans; clear errors (`ticket_not_found`, `already_checked_in`, `ticket_cancelled`, `ticket_waitlisted`, `invalid_code_format`) | ✅ API, tested incl. gated races |
 | Organizer stats (confirmed, checked in, registered, waitlisted, cancelled, free seats, email delivery counts) + registrations list | ✅ API, tested after every transition and under concurrent writes |
-| Live updates (counter refreshes without reload), reminders, reschedule, event cancel | ❌ not implemented yet (phases 5–6) |
+| Live updates over SSE: public seats-left stream, organizer stats stream; works across uvicorn workers and processes (Postgres LISTEN/NOTIFY); snapshot on (re)connect | ✅ tested against real uvicorn processes (incl. `--workers 2`) and through nginx in the smoke test |
+| Reminders, reschedule, event cancel | ❌ not implemented yet (phase 6) |
 | Background worker: email outbox | ✅ (`worker` service). Reminder scheduler ❌ phase 6 |
 | E2E browser tests | ❌ phase 8 |
 
@@ -86,6 +87,8 @@ Full design, including the concurrency mechanisms, data model and edge-case deci
 - If Mailpit is down, registrations still succeed and emails are retried with exponential backoff (5s, 10s, 20s … capped at 1h; `failed` after 8 attempts).
 
 To see emails: open http://localhost:8025 after registering. Tests use a separate `mailpit-test` container, so running tests never empties your dev inbox.
+
+Try live updates in a terminal: `curl -N localhost:8080/api/events/<event-id>/stream`, then register from another terminal.
 
 Known limitations so far:
 - No rate limiting on login or registration. A duplicate registration reveals whether an email is already registered for that event (accepted trade-off, D-036).

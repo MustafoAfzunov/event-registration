@@ -108,4 +108,27 @@ stats=$(curl -fsS -b "$jar" "$api/admin/events/$event_id/stats")
   || fail "check-in flow: first=$c1 second=$c2 stats=$stats"
 ok "check-in with code from the email: 200, second scan 409 already_checked_in, stats checked_in=1"
 
+# Live updates through nginx to the 2-worker backend: 4 public + 2 organizer SSE streams,
+# then one registration made by a separate request; every stream must receive it.
+sse_dir=$(mktemp -d)
+for i in 1 2 3 4; do
+  curl -sN --max-time 6 -D "$sse_dir/pub$i.h" "$api/events/$event_id/stream" > "$sse_dir/pub$i" &
+done
+for i in 1 2; do
+  curl -sN --max-time 6 -D "$sse_dir/org$i.h" -b "$jar" "$api/admin/events/$event_id/stream" > "$sse_dir/org$i" &
+done
+sleep 2
+curl -fsS -H 'Content-Type: application/json' -d '{"email":"three@example.com"}' \
+  "$api/events/$event_id/registrations" > /dev/null || fail "registration during SSE probe"
+wait
+for i in 1 2 3 4; do
+  grep -q '"waitlist_count":2' "$sse_dir/pub$i" || fail "public stream $i got no update: $(cat "$sse_dir/pub$i")"
+done
+for i in 1 2; do
+  grep -q '"waitlisted":2' "$sse_dir/org$i" || fail "organizer stream $i got no update: $(cat "$sse_dir/org$i")"
+done
+workers=$(cat "$sse_dir"/*.h | grep -i '^x-backend-pid' | sort -u | wc -l)
+rm -rf "$sse_dir"
+ok "6 SSE streams via nginx all received the registration (streams served by $workers distinct worker(s))"
+
 echo "SMOKE PASS: $passed checks"

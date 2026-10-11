@@ -130,6 +130,25 @@ class StatsOut(BaseModel):
     emails: EmailCounts
 
 
+class LiveAvailabilityOut(BaseModel):
+    """Public live view of an event: no personal data, no attendance numbers."""
+
+    event_id: uuid.UUID
+    status: EventStatus
+    starts_at: datetime
+    capacity: int
+    seats_left: int
+    waitlist_count: int
+
+    @field_serializer("starts_at")
+    def _ser_starts_at(self, value: datetime) -> str | None:
+        return _utc(value)
+
+
+class LiveStatsOut(StatsOut):
+    event_id: uuid.UUID
+
+
 class RegistrationAdminOut(BaseModel):
     id: uuid.UUID
     email: str

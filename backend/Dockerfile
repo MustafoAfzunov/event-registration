@@ -11,7 +11,9 @@ COPY . .
 RUN useradd --create-home --uid 10001 app
 USER app
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Open SSE streams never end on their own: give them 5s on shutdown, then close them.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", \
+     "--timeout-graceful-shutdown", "5"]
 
 # Test/lint image: runtime + dev tools. Source is bind-mounted over /app in compose.
 FROM runtime AS dev

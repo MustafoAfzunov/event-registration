@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import Settings
 from app.errors import DomainError, not_found
+from app.live.broker import notify_event_changed
 from app.models import Event, EventStatus, Registration, RegistrationStatus
 from app.schemas import EventCreate, EventOut, EventUpdate
 from app.services.seats import lock_event, promote_waitlisted
@@ -141,4 +142,5 @@ async def update_event(
             event.description = data.description
         event.updated_at = now
         await session.flush()
+        await notify_event_changed(session, event_id)
         return UpdateResult(await event_out(session, event_id), promoted_count)
