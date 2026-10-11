@@ -11,6 +11,7 @@ import signal
 import sys
 from collections import Counter
 from collections.abc import AsyncIterator
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -41,6 +42,8 @@ def worker_env(test_db_url: str, tmp_path: Path) -> dict[str, str]:
         "OUTBOX_SEND_INTERVAL_SECONDS": "0.2",
         "OUTBOX_LEASE_SECONDS": "4",  # > 5 * (0.5 + 0.2)
         "WORKER_HEARTBEAT_FILE": str(tmp_path / "heartbeat"),
+        "SCHEDULER_HEARTBEAT_FILE": str(tmp_path / "scheduler-heartbeat"),
+        "SCHEDULER_TICK_SECONDS": "0.2",
     }
 
 
@@ -144,3 +147,41 @@ async def test_sigkill_mid_batch_then_restart_delivers_all_at_most_one_duplicate
     assert len(distinct) == N  # every email delivered at least once
     assert len(messages) - len(distinct) <= 1  # only the in-flight one may repeat
     assert {r["status"] for r in await outbox(engine, event_id)} == {"sent"}
+
+
+async def test_three_worker_processes_send_each_reminder_once(
+    client: AsyncClient,
+    admin: AsyncClient,
+    engine: AsyncEngine,
+    clock: FixedClock,
+    mailpit: Mailpit,
+    spawn: object,
+) -> None:
+    """3 real `python -m app.worker` processes (each = scheduler + dispatcher) run at the same
+    time against one DB for an event 23h away: each confirmed person gets exactly one
+    reminder; waitlisted people get none."""
+    event_id = await create_event(admin, clock, capacity=8, starts_in=timedelta(hours=23))
+    for i in range(10):
+        await register(client, event_id, f"rem{i}@example.com")  # 8 confirmed, 2 waitlisted
+    start = spawn  # type: ignore[assignment]
+    workers = [await start() for _ in range(3)]  # type: ignore[operator]
+
+    async with asyncio.timeout(30):
+        while True:
+            reminders = [
+                m for m in await mailpit.messages() if m["Subject"].startswith("Reminder:")
+            ]
+            if len(reminders) >= 8:
+                break
+            await asyncio.sleep(0.2)
+    await asyncio.sleep(2)  # ~10 more scheduler ticks per process: nothing new may appear
+    for w in workers:
+        w.send_signal(signal.SIGTERM)
+    await asyncio.gather(*[asyncio.wait_for(w.wait(), 10) for w in workers])
+
+    reminders = [m for m in await mailpit.messages() if m["Subject"].startswith("Reminder:")]
+    assert Counter(t["Address"] for m in reminders for t in m["To"]) == Counter(
+        f"rem{i}@example.com" for i in range(8)
+    )
+    rows = [r for r in await outbox(engine, event_id) if r["kind"] == "reminder"]
+    assert len(rows) == 8 and {r["status"] for r in rows} == {"sent"}

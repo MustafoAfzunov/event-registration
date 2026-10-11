@@ -149,12 +149,16 @@ Any subset of `{ "title", "description", "capacity" }`. Unknown fields (includin
 | 409 | `event_started` | capacity change after start |
 
 ### `POST /api/admin/events/{event_id}/reschedule` — phase 6
-`{ "starts_at": "…" }` → `200 { "event": {…}, "notified": 41, "changed": true }`. Rescheduling to the same time returns `changed:false, notified:0`.
+`{ "starts_at": "…" }` (timezone required) → `200 { "event": {…}, "notified": 41, "changed": true }`.
+- **`notified`** = the confirmed, waitlisted and checked-in registrations that each got a "New date" email (D-069).
+- **Same time:** `changed:false, notified:0`, with no version bump and no emails.
+- **Effects:** `schedule_version` +1, pending reminders for the old date are marked `skipped`, the scheduler sends one reminder for the new date when its 24h window opens (or on the next tick if it's already inside), and the live streams update.
+- **After the start:** rescheduling an event that has already started to a future time reopens registration.
 
 Errors: `404 event_not_found`, `409 event_cancelled`, `422 starts_in_past`.
 
 ### `POST /api/admin/events/{event_id}/cancel` — phase 6
-`200 { "event": {…, "status":"cancelled"}, "notified": 44 }`. This is idempotent: cancelling again returns `notified: 0`.
+`200 { "event": {…, "status":"cancelled"}, "notified": 44, "changed": true }`. Confirmed, waitlisted and checked-in people get a "Cancelled" email, and pending reminders are skipped. After that, register, cancel, check-in, update and reschedule all return `409 event_cancelled`. The call is idempotent: cancelling again returns `changed:false, notified:0`.
 
 ### `GET /api/admin/events/{event_id}/stats` — phase 4
 ```json

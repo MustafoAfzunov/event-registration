@@ -383,3 +383,41 @@ Format: **D-NNN, title** · When · Decision · Why · Rejected alternatives.
 - **When:** 2026-10-12T02:14:10+06:00
 - **Decision:** frames carry no `id:`. A reconnect gets the current snapshot.
 - **Why:** the client needs current state, not history. Replay would need a per-event change log, which is extra state that can disagree with the tables.
+
+---
+<!-- Phase 6 -->
+
+### D-067: Scheduler = per-event `FOR UPDATE SKIP LOCKED` + outbox dedupe key (refines D-008)
+- **When:** 2026-10-12T02:47:37+06:00
+- **Decision:** each tick repeatedly takes the next due event that still lacks a reminder for its current version (`… FOR UPDATE OF e SKIP LOCKED`, one event per transaction), enqueues its reminders, and commits. The key is `reminder:{event}:v{schedule_version}:{email}`. There are no in-memory timers. The worker process runs the scheduler next to the dispatcher, and compose health checks both heartbeats.
+- **Why:**
+  - Holding the event lock means register, cancel and reschedule can't change the confirmed set or version mid-enqueue.
+  - SKIP LOCKED lets 3+ instances work in parallel without waiting on each other.
+  - A crash before commit rolls back cleanly.
+- **Honest detail found by a test:** SKIP LOCKED is **not** what makes it exactly-once. Under READ COMMITTED an instance can visit an event another instance finished a moment earlier (its query snapshot predates that commit, and the lock was already released). Its insert then conflicts and enqueues nothing. The unique key is the guarantee. The test now asserts "each event's reminders enqueued by exactly one instance", not "visited by one".
+
+### D-068: Reminders are re-checked and re-rendered at send time; skipped ones can be re-armed
+- **When:** 2026-10-12T02:47:37+06:00
+- **Decision:** before sending a `reminder`, the dispatcher checks four things: the event is scheduled, it has the same `schedule_version`, `now < starts_at`, and the **person** (by `email_normalized`) is still `confirmed`. Otherwise the row becomes `skipped` with the reason in `last_error`. Content is re-rendered from current data (ticket code, manage link, date). The scheduler's upsert re-arms a `skipped` row (`DO UPDATE … WHERE status='skipped'`) if the person is confirmed again inside the window. `sent`/`pending`/`failed` rows are never touched.
+- **Why:** the reminder must be true when it arrives (not stale after cancel, reschedule, check-in, start, or event cancel). Re-arming keeps "every confirmed participant gets one" true for someone who cancels and re-registers before the reminder went out, while "at most one sent per person per date" still holds.
+- **Evidence:** mutants without the version check or without the re-arm each fail a dedicated test.
+
+### D-069: Reschedule and event-cancel emails also go to checked-in people (extends A5)
+- **When:** 2026-10-12T02:47:37+06:00
+- **Decision:** recipients = confirmed + waitlisted + checked_in. Cancelled people are excluded.
+- **Why:** someone who already arrived is clearly a participant (the brief: "every participant gets an email"). It only happens if the organizer moves or cancels after check-ins started.
+
+### D-070: Use `RETURNING` to know what an `INSERT … ON CONFLICT` wrote; `rowcount` is unreliable here
+- **When:** 2026-10-12T02:47:37+06:00
+- **Decision:** both the scheduler's upsert and `emails.outbox.enqueue` count `RETURNING id` rows.
+- **Why:** verified empirically. Through the ORM `AsyncSession`, `insert(...).on_conflict_…` reports `rowcount = -1` whether or not a row was written (textual SQL reports correctly). The scheduler test exposed it, because a conflicting revisit was counted as "enqueued". Phase 2's `enqueue()` had the same latent bug: its return value was always truthy. No caller used it, so behaviour was unaffected. It's fixed and pinned by `test_enqueue_reports_whether_a_row_was_written`.
+
+### D-071: Rescheduling a started event to a future time reopens it
+- **When:** 2026-10-12T02:47:37+06:00
+- **Decision:** allowed as long as the event isn't cancelled and the new time is in the future. Registration (open while `now < starts_at`) reopens.
+- **Why:** "the event had to be moved after doors opened" is a real case. Refusing would force the organizer to cancel and recreate, losing all registrations.
+
+### D-072: Known race, accepted: a reminder already handed to SMTP when a reschedule commits
+- **When:** 2026-10-12T02:47:37+06:00
+- **Decision:** the send-time check covers a reminder claimed *before* the reschedule (tested). It can't cover the instant after the check passed and while SMTP is transmitting. That message carries the old date, and the "New date" email follows right after.
+- **Why:** closing it would need a lock across the SMTP call, which would block the reschedule on a mail server. The window is milliseconds and the outcome is corrected by the next email.

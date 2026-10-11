@@ -99,28 +99,16 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
 - **DoD:** with the stack running, `curl -N localhost:8080/api/events/{id}/stream` prints a new frame within 1s of a change made via another terminal. ✅ The smoke test checks this on the real stack.
 
 ## Phase 6: Scheduler (reminders, reschedule, event cancel)
-- **Scope:** reminder tick (INSERT…SELECT…ON CONFLICT DO NOTHING), reminder send-time guard, reschedule endpoint (version bump and emails), cancel-event endpoint, catch-up semantics.
-- **Files:** `backend/app/scheduler.py`, `backend/app/services/events.py` (reschedule/cancel), tests.
-- **Tests:**
-  - `test_reminders.py::test_reminder_enqueued_inside_24h_window`
-  - `::test_no_reminder_outside_window`
-  - `::test_tick_twice_enqueues_once`
-  - `::test_two_schedulers_concurrently_enqueue_once`
-  - `::test_reminder_only_for_confirmed_not_waitlisted_or_cancelled`
-  - `::test_late_reminder_after_downtime_if_event_not_started`
-  - `::test_no_reminder_after_event_started`
-  - `::test_cancel_reregister_same_email_gets_one_reminder`
-  - `::test_promoted_inside_window_gets_reminder_next_tick`
-  - `::test_stale_reminder_skipped_after_cancel`
-  - `test_reschedule.py::test_reschedule_emails_confirmed_and_waitlisted_not_cancelled`
-  - `::test_reschedule_bumps_version_and_voids_pending_reminder`
-  - `::test_reschedule_after_reminder_sent_sends_one_new_reminder`
-  - `::test_reschedule_same_time_is_noop`
-  - `::test_reschedule_to_past_rejected`
-  - `::test_reschedule_email_arrives_in_mailpit` (integration)
-  - `test_event_cancel.py::test_cancel_event_notifies_and_blocks_actions`
-  - `::test_cancel_event_idempotent`
-- **DoD:** all pass. A manual demo of creating an event 23h ahead, registering, and seeing the reminder in Mailpit within one tick was done and recorded in DEVLOG.
+- **Scope:** DB-driven reminder scheduler (FOR UPDATE SKIP LOCKED per event, outbox dedupe key, re-arm of skipped), send-time reminder check in the dispatcher, reschedule (version bump, void pending reminders, emails), event cancel, catch-up semantics. The worker runs scheduler + dispatcher, and compose checks both heartbeats.
+- **Files (as built):** `backend/app/scheduler.py`, `backend/app/emails/dispatcher.py` (`_prepare_reminder`), `backend/app/services/events.py` (`reschedule_event`, `cancel_event`), templates, routes, `backend/app/worker.py`; tests `tests/{test_reminders,test_reschedule,test_event_cancel}.py`, additions in `test_worker_process.py`, `test_live.py`, `test_outbox.py`.
+- **Tests (as built):**
+  - `test_reminders.py::test_reminder_sent_once_with_three_scheduler_instances`, `::test_three_schedulers_split_due_events_with_skip_locked` (gated), `::test_window_opens_exactly_24h_before`, `::test_not_sent_to_cancelled_or_waitlisted`, `::test_cancelled_after_enqueue_is_skipped_and_promoted_gets_one`, `::test_promoted_participant_gets_exactly_one`, `::test_dispatcher_restart_between_claim_and_send_neither_loses_nor_duplicates`, `::test_scheduler_crash_before_commit_loses_nothing`, `::test_late_reminder_after_downtime_if_event_not_started`, `::test_no_reminder_after_event_started`, `::test_event_created_less_than_24h_ahead`, `::test_cancel_and_reregister_gets_one_reminder`, `::test_skipped_reminder_is_rearmed_when_person_confirmed_again`, `::test_checked_in_before_reminder_is_skipped`, `::test_tick_without_due_events_is_a_noop`, `::test_reminder_key_is_per_person_per_schedule_version`
+  - `test_reschedule.py::test_reschedule_emails_every_participant`, `::test_reschedule_resets_reminders_and_reminder_follows_new_date`, `::test_reschedule_voids_pending_reminders`, `::test_reminder_claimed_before_reschedule_is_not_sent_with_old_date`, `::test_reschedule_into_near_future_sends_new_reminder_next_tick`, `::test_reschedule_into_past_rejected`, `::test_reschedule_same_time_is_noop`, `::test_reschedule_after_start_reopens_registration`, `::test_reschedule_errors`
+  - `test_event_cancel.py::test_cancel_event_notifies_and_blocks_actions`, `::test_cancel_event_idempotent`, `::test_cancel_event_requires_organizer`
+  - `test_worker_process.py::test_three_worker_processes_send_each_reminder_once` (3 real worker processes)
+  - `test_live.py::test_reschedule_and_event_cancel_reach_public_stream`; `test_outbox.py::test_enqueue_reports_whether_a_row_was_written`
+  - smoke: real worker scheduler sends exactly 1 reminder; reschedule gives 1 "New date" email + 1 reminder for the new date
+- **DoD:** all pass. The manual demo is replaced by the smoke probe on the real stack (an event 23h ahead gets exactly one reminder in Mailpit). ✅
 
 ## Phase 7: Frontend
 - **Scope:** pages: events list; event page with register form (shows confirmed or waitlisted with position); manage page `/r/:token` (ticket code, cancel); admin login; admin events list + create; admin event dashboard (live counters via EventSource, registrations table, capacity edit, reschedule, cancel event); check-in page (autofocus input, Enter submits, big green/red result, input cleared for next ticket). Error `code` → human message map.

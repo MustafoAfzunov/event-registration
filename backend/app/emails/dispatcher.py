@@ -22,17 +22,19 @@ import asyncio
 import contextlib
 import logging
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from sqlalchemy import TextClause, text
+from sqlalchemy import TextClause, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.clock import Clock
 from app.config import Settings
+from app.emails import templates
 from app.emails.smtp import Sender, build_message
 from app.live.broker import notify_event_changed
+from app.models import EmailKind, Event, EventStatus, Registration, RegistrationStatus
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +50,7 @@ _CLAIM = text(
             LIMIT :limit
               FOR UPDATE SKIP LOCKED)
     RETURNING id, kind::text AS kind, dedupe_key, to_email, subject, body_text, attempts,
-              event_id, registration_id
+              event_id, registration_id, schedule_version
     """
 )
 # Every completion is fenced: WHERE id = :id AND status = 'sending' AND attempts = :token.
@@ -62,6 +64,14 @@ _RETRY_LATER = text(
 )
 _GIVE_UP = text(
     "UPDATE email_outbox SET status = 'failed', locked_until = NULL, last_error = :error "
+    "WHERE id = :id AND status = 'sending' AND attempts = :token"
+)
+_SKIP = text(
+    "UPDATE email_outbox SET status = 'skipped', locked_until = NULL, last_error = :reason "
+    "WHERE id = :id AND status = 'sending' AND attempts = :token"
+)
+_REFRESH_CONTENT = text(
+    "UPDATE email_outbox SET to_email = :to_email, subject = :subject, body_text = :body "
     "WHERE id = :id AND status = 'sending' AND attempts = :token"
 )
 _RELEASE = text(
@@ -81,6 +91,7 @@ class Claimed:
     attempts: int  # == claim (fencing) token
     event_id: uuid.UUID
     registration_id: uuid.UUID | None
+    schedule_version: int | None = None
 
 
 class Dispatcher:
@@ -149,7 +160,61 @@ class Dispatcher:
         """Hand an unsent row back immediately (graceful shutdown)."""
         return await self._complete(_RELEASE, item)
 
+    async def _prepare_reminder(self, item: Claimed) -> Claimed | str:
+        """Send-time check for reminders (D-068): the reminder must still be true NOW.
+        Returns the item with freshly rendered content, or the reason to skip it."""
+        async with self.sessionmaker() as session:
+            event = await session.get(Event, item.event_id)
+            original = (
+                await session.get(Registration, item.registration_id)
+                if item.registration_id
+                else None
+            )
+            if event is None or original is None:
+                return "event or registration no longer exists"
+            if event.status != EventStatus.scheduled:
+                return "event cancelled"
+            if event.schedule_version != item.schedule_version:
+                return f"superseded: event rescheduled (now v{event.schedule_version})"
+            if self.clock.now() >= event.starts_at:
+                return "event already started"
+            # The person, not the registration row: they may have cancelled and re-registered.
+            current = await session.scalar(
+                select(Registration).where(
+                    Registration.event_id == event.id,
+                    Registration.email_normalized == original.email_normalized,
+                    Registration.status == RegistrationStatus.confirmed,
+                )
+            )
+            if current is None:
+                return "participant no longer confirmed"
+            rendered = templates.reminder(
+                event.title,
+                event.starts_at,
+                current.ticket_code,
+                self.settings.public_base_url,
+                current.manage_token,
+            )
+        fresh = replace(
+            item, to_email=current.email, subject=rendered.subject, body_text=rendered.body
+        )
+        ok = await self._complete(
+            _REFRESH_CONTENT,
+            fresh,
+            to_email=fresh.to_email,
+            subject=fresh.subject,
+            body=fresh.body_text,
+        )
+        return fresh if ok else "lost the claim"
+
     async def deliver(self, item: Claimed) -> bool:
+        if item.kind == EmailKind.reminder.value:
+            prepared = await self._prepare_reminder(item)
+            if isinstance(prepared, str):
+                logger.info("outbox %s (reminder) skipped: %s", item.id, prepared)
+                await self._complete(_SKIP, item, reason=prepared)
+                return False
+            item = prepared
         message = build_message(
             mail_from=self.settings.mail_from,
             to=item.to_email,

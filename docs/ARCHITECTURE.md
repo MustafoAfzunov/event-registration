@@ -12,7 +12,7 @@ The brief leaves some points open. These are the assumptions we work from. Each 
 | A2 | One event or many? | **Many events** are supported. It costs almost nothing extra and keeps the organizer screen generic. The UI is still simple: a list, then one event. |
 | A3 | How does a participant cancel? | With a **secret manage link** (`/r/{manage_token}`) sent in every email. Cancelling "by email address" alone would let anyone cancel anyone. |
 | A4 | Who is a "participant" for reminders? | Only seat holders (`confirmed`) get the **reminder**. Waitlisted people have no seat, so a "see you tomorrow" email would mislead them. |
-| A5 | Who is a "participant" for reschedule emails? | **confirmed + waitlisted** both get the reschedule email, because the date change affects whether they still want to wait. Cancelled people don't. |
+| A5 | Who is a "participant" for reschedule emails? | **confirmed + waitlisted** both get the reschedule email, because the date change affects whether they still want to wait. Cancelled people don't. *Phase 6: checked-in people are included too (D-069).* |
 | A6 | "Exactly one reminder 24h before" | Exactly one reminder **per person per event schedule**. If the event is rescheduled, the old reminder becomes void and one new reminder is due for the new time (see §4.5). If someone gets a seat when the event is already less than 24h away, they get their reminder on the next scheduler tick. |
 | A7 | When does registration close? | At `starts_at`. After that, register, cancel and capacity changes are rejected. |
 | A8 | Check-in window | Check-in is allowed any time while the event is `scheduled`, with no time window. The event has no end time, so we don't invent one. |
@@ -166,6 +166,12 @@ If 0 rows come back, the code is looked up again to choose the error: `ticket_no
 Check-in racing with cancellation: both are conditional updates on `status='confirmed'`, so exactly one wins. Cancel takes the event lock first and then the row. Check-in takes only the row. That ordering can't deadlock.
 
 ### 4.7 Reminders scheduler (restart-safe, catches up after downtime)
+
+*As built (phase 6, D-067/D-068). This refines the sketch below:*
+- **Event selection:** each tick takes the next due event that still lacks a reminder for its current `schedule_version` with `SELECT … FOR UPDATE OF e SKIP LOCKED`. It enqueues that event's reminders in the same transaction, then moves to the next event. While locked, no registration, cancel or reschedule for that event can run. Concurrent scheduler instances skip each other's events instead of waiting.
+- **The guarantee is the dedupe key, not SKIP LOCKED.** Under READ COMMITTED an instance can still *visit* an event another one has just finished (its snapshot predates that commit). Its insert then conflicts and enqueues nothing. Shown by a test.
+- **Send-time check (dispatcher):** just before sending a reminder it re-checks that the event is still scheduled, has the same `schedule_version`, hasn't started, and that **the person** (by email) is still `confirmed`. It also re-renders the content with the current ticket and date. Otherwise the row is `skipped` with a reason.
+- **Re-arm:** a `skipped` reminder is re-armed (`ON CONFLICT … DO UPDATE … WHERE status='skipped'`) when the same person is confirmed again inside the window, for example after cancelling and re-registering. A `sent` row is never re-armed, so it's at most one *sent* reminder per person per schedule version.
 
 The worker loop runs every `SCHEDULER_TICK_SECONDS` (default 30s):
 ```sql

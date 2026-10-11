@@ -10,11 +10,13 @@ from app.schemas import (
     CheckInOut,
     EmailCounts,
     EventCreate,
+    EventNotifyOut,
     EventOut,
     EventUpdate,
     EventUpdateOut,
     LoginIn,
     RegistrationAdminOut,
+    RescheduleIn,
     StatsOut,
 )
 from app.security import (
@@ -105,3 +107,17 @@ async def list_registrations(
         )
         for r in rows
     ]
+
+
+@router.post("/events/{event_id}/reschedule")
+async def reschedule_event(
+    event_id: uuid.UUID, body: RescheduleIn, sm: SessionMaker, now: Now, settings: AppSettings
+) -> EventNotifyOut:
+    r = await events.reschedule_event(sm, event_id, body.starts_at, now, settings)
+    return EventNotifyOut(event=r.event, notified=r.notified, changed=r.changed)
+
+
+@router.post("/events/{event_id}/cancel")
+async def cancel_event(event_id: uuid.UUID, sm: SessionMaker, now: Now) -> EventNotifyOut:
+    r = await events.cancel_event(sm, event_id, now)
+    return EventNotifyOut(event=r.event, notified=r.notified, changed=r.changed)

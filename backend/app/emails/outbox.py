@@ -43,6 +43,9 @@ async def enqueue(
             created_at=now,
         )
         .on_conflict_do_nothing(index_elements=["dedupe_key"])
+        # RETURNING, not rowcount: through the ORM session this INSERT reports rowcount=-1
+        # whether or not a row was written (D-070).
+        .returning(EmailOutbox.id)
     )
     result = await session.execute(stmt)
-    return bool(result.rowcount)  # type: ignore[attr-defined]
+    return result.first() is not None

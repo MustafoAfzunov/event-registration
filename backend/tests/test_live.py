@@ -7,6 +7,7 @@ import asyncio
 import uuid
 from collections.abc import Callable
 from contextlib import AsyncExitStack
+from datetime import timedelta
 from typing import Any
 
 import httpx
@@ -429,3 +430,19 @@ async def test_stream_releases_subscription_when_client_goes_away(test_db_url: s
     await body.aclose()  # what Starlette does when the client disconnects
     assert broker.subscriber_count() == 0
     await broker.stop()
+
+
+async def test_reschedule_and_event_cancel_reach_public_stream(
+    live_servers: Servers, client: AsyncClient, admin: AsyncClient, clock: FixedClock
+) -> None:
+    event_id = await create_event(admin, clock, capacity=5)
+    async with open_stream(live_servers["b"].url, public_path(event_id)) as s:
+        await s.next()
+        new = (clock.now() + timedelta(days=10)).replace(microsecond=0)
+        r = await admin.post(
+            f"/api/admin/events/{event_id}/reschedule", json={"starts_at": new.isoformat()}
+        )
+        assert r.status_code == 200
+        assert (await s.next()).data["starts_at"] == new.isoformat().replace("+00:00", "Z")
+        await admin.post(f"/api/admin/events/{event_id}/cancel")
+        assert (await s.next()).data["status"] == "cancelled"

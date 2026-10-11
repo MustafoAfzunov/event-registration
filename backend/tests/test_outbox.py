@@ -237,3 +237,30 @@ async def test_message_headers(
     assert message["From"]["Address"] == "no-reply@eventreg.example.com"
     assert message_id("ticket:x") == message_id("ticket:x") != message_id("ticket:y")
     assert uuid.UUID(str(row["registration_id"]))
+
+
+async def test_enqueue_reports_whether_a_row_was_written(
+    app: object, admin: AsyncClient, clock: FixedClock
+) -> None:
+    from app.emails.outbox import enqueue
+    from app.emails.templates import Rendered
+    from app.models import EmailKind
+
+    event_id = uuid.UUID(await create_event(admin, clock, capacity=5))
+    sm = app.state.sessionmaker  # type: ignore[attr-defined]
+    results = []
+    for _ in range(2):
+        async with sm() as session, session.begin():
+            results.append(
+                await enqueue(
+                    session,
+                    kind=EmailKind.ticket,
+                    key="ticket:same",
+                    event_id=event_id,
+                    registration_id=None,
+                    to_email="a@example.com",
+                    email=Rendered("s", "b"),
+                    now=clock.now(),
+                )
+            )
+    assert results == [True, False]

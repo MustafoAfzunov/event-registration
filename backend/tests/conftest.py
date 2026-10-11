@@ -24,6 +24,7 @@ from app.db import make_engine
 from app.emails.dispatcher import Dispatcher
 from app.emails.smtp import Sender, SmtpSender
 from app.main import create_app
+from app.scheduler import Scheduler
 from tests.live_server import LiveServer, run_server, server_env
 from tests.mailpit import Mailpit
 
@@ -166,3 +167,14 @@ def live_servers(
         run_server(env, 2, logs / "multi.log") as multi,
     ):
         yield {"a": a, "b": b, "multi": multi}
+
+
+@pytest.fixture
+def make_scheduler(app: FastAPI, clock: FixedClock) -> Callable[..., Scheduler]:
+    """A reminder scheduler sharing the app's DB and clock. Each call = a fresh instance."""
+
+    def build(**overrides: Any) -> Scheduler:
+        settings = app.state.settings.model_copy(update=overrides)
+        return Scheduler(app.state.sessionmaker, clock, settings)
+
+    return build

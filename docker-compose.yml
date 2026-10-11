@@ -17,6 +17,7 @@ x-backend-env: &backend-env
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
   SMTP_HOST: mailpit
   SMTP_PORT: "1025"
+  SCHEDULER_TICK_SECONDS: ${SCHEDULER_TICK_SECONDS:-30}
 
 x-backend-build: &backend-build
   context: ./backend
@@ -85,7 +86,8 @@ services:
     stop_grace_period: 30s
     healthcheck:
       # Healthy while the dispatcher loop keeps touching its heartbeat file.
-      test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(time.time() - os.path.getmtime('/tmp/worker-heartbeat') > 30)"]
+      # Both loops must be alive: dispatcher (polls every 1s) and scheduler (ticks every 30s).
+      test: ["CMD", "python", "-c", "import os,sys,time; age=lambda f: time.time()-os.path.getmtime(f); sys.exit(age('/tmp/worker-heartbeat') > 30 or age('/tmp/scheduler-heartbeat') > 90)"]
       interval: 5s
       timeout: 3s
       retries: 10

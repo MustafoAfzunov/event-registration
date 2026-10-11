@@ -11,6 +11,7 @@ cd "$(dirname "$0")/.."
 
 export COMPOSE_PROJECT_NAME="eventreg-smoke-$$"
 export FRONTEND_PORT=18080 BACKEND_PORT=18000 DB_PORT=15433 MAILPIT_UI_PORT=18025 MAILPIT_SMTP_PORT=11025
+export SCHEDULER_TICK_SECONDS=2  # so the reminder probe doesn't wait 30s
 PGUSER="${POSTGRES_USER:-eventreg}" PGDB="${POSTGRES_DB:-eventreg}"
 
 cleanup() { docker compose down --volumes --remove-orphans --rmi local >/dev/null 2>&1 || true; }
@@ -130,5 +131,27 @@ done
 workers=$(cat "$sse_dir"/*.h | grep -i '^x-backend-pid' | sort -u | wc -l)
 rm -rf "$sse_dir"
 ok "6 SSE streams via nginx all received the registration (streams served by $workers distinct worker(s))"
+
+# Reminder scheduler in the real worker: event 23h ahead -> exactly one reminder; then
+# reschedule -> "New date" email and (new date still inside 24h) one reminder for the new date.
+soon=$(date -u -d '+23 hours' +%Y-%m-%dT%H:%M:%SZ)
+ev2=$(curl -fsS -b "$jar" -H 'Content-Type: application/json' \
+  -d "{\"title\":\"Soon\",\"starts_at\":\"$soon\",\"capacity\":5}" "$api/admin/events" \
+  | sed -E 's/.*"id":"([^"]+)".*/\1/')
+curl -fsS -H 'Content-Type: application/json' -d '{"email":"remind@example.com"}' \
+  "$api/events/$ev2/registrations" > /dev/null || fail "register for reminder probe"
+count() { curl -fsS -G "http://localhost:$MAILPIT_UI_PORT/api/v1/search" --data-urlencode "query=$1" \
+  | grep -o '"messages_count":[0-9]*' | cut -d: -f2; }
+for _ in $(seq 1 40); do [[ "$(count 'to:remind@example.com subject:Reminder')" -ge 1 ]] && break; sleep 0.5; done
+sleep 5  # two more scheduler ticks: must not produce a second reminder
+[[ "$(count 'to:remind@example.com subject:Reminder')" == "1" ]] || fail "expected exactly 1 reminder"
+moved=$(date -u -d '+20 hours' +%Y-%m-%dT%H:%M:%SZ)
+curl -fsS -b "$jar" -H 'Content-Type: application/json' -d "{\"starts_at\":\"$moved\"}" \
+  "$api/admin/events/$ev2/reschedule" | grep -q '"notified":1' || fail "reschedule"
+for _ in $(seq 1 40); do [[ "$(count 'to:remind@example.com subject:Reminder')" -ge 2 ]] && break; sleep 0.5; done
+sleep 5
+[[ "$(count 'to:remind@example.com subject:"New date"')" == "1" ]] || fail "expected 1 reschedule email"
+[[ "$(count 'to:remind@example.com subject:Reminder')" == "2" ]] || fail "expected 1 reminder per date"
+ok "worker scheduler: exactly 1 reminder; reschedule -> 1 'New date' email + 1 reminder for the new date"
 
 echo "SMOKE PASS: $passed checks"

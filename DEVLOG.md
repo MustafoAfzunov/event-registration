@@ -219,3 +219,46 @@ Append-only. One entry per phase (or significant session), with a timestamp from
 - The phase 2 concurrency loop wasn't re-run 20× this phase. The full suite (which includes those tests once) passed after adding `pg_notify` to the locked transactions.
 
 **Next:** phase 6 (scheduler: reminders, reschedule, event cancel). Not started.
+
+---
+
+## 2026-10-12T03:08:26+06:00 · Phase 6: Scheduler (reminders), reschedule, event cancel
+
+**Done**
+- `app/scheduler.py`: DB-driven ticks. Each picks the next due event lacking reminders for its current `schedule_version` with `FOR UPDATE OF e SKIP LOCKED`, upserts one reminder per confirmed person (key `reminder:{event}:v{version}:{email}`, re-arming only `skipped` rows), notifies, and commits. No in-memory timers. Runs in the worker next to the dispatcher. Compose healthcheck checks both heartbeats. `SCHEDULER_TICK_SECONDS` is configurable.
+- Dispatcher send-time check for reminders: event scheduled, same version, not started, person still confirmed. Otherwise `skipped` with a reason. Content is re-rendered with the current ticket and date (D-068).
+- `POST /api/admin/events/{id}/reschedule`: `starts_in_past` 422, same time = no-op. Otherwise version +1, pending old-version reminders skipped, "New date" email to confirmed + waitlisted + checked-in (D-069), live update.
+- `POST /api/admin/events/{id}/cancel`: idempotent. "Cancelled" email to the same group, pending reminders skipped, every later mutation 409.
+- Policies, as decided in ARCHITECTURE A6/E16–E18:
+  - Window `[start−24h, start)`.
+  - Already inside the window (created, promoted, registered or rescheduled late) means the reminder goes out at the next tick.
+  - Downtime means a late reminder if the event hasn't started, never after the start.
+
+**Tests:** `make lint && make test-all` → clean. **Backend 191 passed** (31 new), frontend 4, smoke 12/12. Your list:
+- **3 scheduler instances:** 5 rounds of 3 concurrent ticks + 3 concurrent dispatchers gave 5 people 5 reminders. A gated variant (3 instances proven blocked at once) over 30 events: each event's reminders were enqueued by exactly one instance. **3 real worker processes**: 8 confirmed got exactly 8 reminders, the 2 waitlisted got none.
+- Not sent to cancelled or waitlisted people. Cancelled after enqueue means skipped at send time.
+- Promoted participant: exactly one reminder (and the new ticket code in it).
+- **Restart between claim and send:** a dispatcher crash after 1/3 sends, an early restart that sends nothing (lease held), a tick that doesn't re-enqueue, then after the lease all 3 delivered exactly once. A scheduler crash before commit rolls back, and the next tick does it.
+- **Reschedule:** v1 reminders sent, then reschedule, then nothing until the new window, then exactly one v2 reminder with the new date. Pending v1 voided. A v1 reminder **claimed before** the reschedule is skipped at send.
+- **Past / near future:** past or now → 422 with nothing changed. Moved to 2h ahead → one reminder with the new date on the next tick.
+- **Also:** window opens exactly at 24h, late reminder after downtime, none after the start, events created <24h ahead, cancel+re-register gets one reminder, the skipped→re-armed path, check-in before the reminder means skipped, event cancel blocks everything, and live streams get reschedule/cancel.
+- **Flakiness:** the phase 6 tests plus worker-process tests passed **10/10 runs**.
+- **Mutation:**
+  - Version check removed: the claimed-before-reschedule test fails.
+  - Voiding pending reminders removed: the voiding test fails. Notably *no stale email* was sent even then, because the send-time check caught it (two independent layers).
+  - Re-arm removed: the re-arm test fails.
+- **Smoke on the real stack** (tick 2s): exactly 1 reminder. Reschedule → 1 "New date" email + 1 reminder for the new date.
+
+**Surprises (and fixes)**
+- `sqlalchemy.text()` parsed `':v'` inside a SQL string literal, and even inside a SQL **comment**, as a bind parameter. The query is rewritten as `':' || 'v'`.
+- The SKIP LOCKED partition test failed at first. Under READ COMMITTED an instance can revisit an event that another just finished, so SKIP LOCKED isn't the exactly-once mechanism; the dedupe key is. The code and test now report only real enqueues (D-067).
+- `rowcount` is -1 through the ORM session for `INSERT … ON CONFLICT` (verified). The scheduler now uses `RETURNING`, and so does phase 2's `enqueue()`, whose boolean was silently always true (D-070). Pinned by a test.
+
+**Not done / known gaps**
+- An accepted tiny race: a reminder already passing through SMTP when a reschedule commits carries the old date, and the "New date" email follows (D-072).
+- Reminder lateness is up to one tick (30s) plus dispatch latency.
+- No UI for reschedule or cancel yet (phase 7).
+- The phase 2 20× concurrency loop wasn't re-run. The full suite passed.
+- The dev stack on :8080 still runs the images from 12h ago. Run `make up` to get phase 6 there.
+
+**Next:** phase 7 (frontend). Not started.

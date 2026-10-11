@@ -44,6 +44,12 @@ class Settings(BaseSettings):
     outbox_backoff_max_seconds: float = 3600.0
     # Optional pause between two sends (SMTP provider rate limits). 0 = no pause.
     outbox_send_interval_seconds: float = 0.0
+    # Reminder scheduler (ARCHITECTURE 4.7): reminders become due this long before the start.
+    reminder_lead_seconds: float = 24 * 3600
+    scheduler_tick_seconds: float = 30.0
+    scheduler_max_events_per_tick: int = Field(default=100, ge=1)
+    # Touched on every scheduler tick; the container healthcheck checks its age.
+    scheduler_heartbeat_file: str = "/tmp/scheduler-heartbeat"  # noqa: S108
     # Touched on every dispatcher loop; the container healthcheck checks its age.
     # Container-local liveness marker with no content, so a predictable /tmp path is fine.
     worker_heartbeat_file: str = "/tmp/worker-heartbeat"  # noqa: S108

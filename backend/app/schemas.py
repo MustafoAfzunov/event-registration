@@ -68,6 +68,16 @@ class EventUpdateOut(EventOut):
     promoted_count: int
 
 
+class RescheduleIn(_Strict):
+    starts_at: AwareDatetime
+
+
+class EventNotifyOut(BaseModel):
+    event: EventOut
+    notified: int
+    changed: bool
+
+
 class RegisterIn(_Strict):
     email: str = Field(max_length=400)
 
