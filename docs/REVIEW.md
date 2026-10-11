@@ -16,7 +16,7 @@ Each finding has a proposed test that reproduces it. **Status** is updated as fi
 | M2 | MEDIUM | Logout doesn't revoke the session; open organizer streams keep running | open |
 | M3 | MEDIUM | Dev secrets and insecure cookie are silent defaults even with `APP_ENV=production` | open |
 | M4 | MEDIUM | "Your local time" code paths are only ever tested in UTC | open |
-| M5 | MEDIUM | README says only Docker + make are needed; scripts need bash, curl and GNU `date` | open |
+| M5 | MEDIUM | README says only Docker + make are needed; scripts need bash, curl and GNU `date` | README corrected; scripts unchanged |
 | L1 | LOW | Emails show UTC while the UI shows local time | open |
 | L2 | LOW | Non-reminder emails aren't re-validated at send time | open |
 | L3 | LOW | SSE: subscriber cleanup on real disconnect not verified end-to-end; no connection cap | open |

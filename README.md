@@ -2,11 +2,11 @@
 
 Event registration with a waitlist, emailed tickets, check-in and a live organizer dashboard. The backend is FastAPI + PostgreSQL, and the frontend is React + Vite. Email goes to Mailpit.
 
-> **Current state: phase 8 of 10.** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats). A background worker emails tickets, waitlist notices and promotions to Mailpit. Organizers can check tickets in (exactly once) and read stats. Counters update live over SSE across backend workers. A scheduler in the worker sends exactly one reminder per confirmed participant 24h before the event, and rescheduling notifies everyone. A React UI covers every flow (public event page, ticket page, organizer dashboard, check-in). The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
+> **Current state: phase 9 of 10 (independent review done: [docs/REVIEW.md](docs/REVIEW.md), both HIGH findings fixed, MEDIUM/LOW findings listed below).** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats). A background worker emails tickets, waitlist notices and promotions to Mailpit. Organizers can check tickets in (exactly once) and read stats. Counters update live over SSE across backend workers. A scheduler in the worker sends exactly one reminder per confirmed participant 24h before the event, and rescheduling notifies everyone. A React UI covers every flow (public event page, ticket page, organizer dashboard, check-in). The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
 
 ## Quick start
 
-Requirements: Docker with the Compose v2 plugin, and `make`. Nothing else is needed on the host: tests and linters run in containers too.
+Requirements: Docker with the Compose v2 plugin and `make` for running the app, `make test` and `make lint` (tests and linters run in containers). `make test-smoke`, `make e2e` and `make proof` also need `bash`, `curl` and **GNU** `date` on the host: Linux works as is; on macOS install coreutils (REVIEW M5).
 
 ```bash
 make up
@@ -127,7 +127,11 @@ Try live updates in a terminal: `curl -N localhost:8080/api/events/<event-id>/st
   - Exactly one reminder follows for the new date, so a person can receive one reminder per date.
 - Someone who cancels and re-registers doesn't get a second reminder for the same date.
 
-Known limitations so far:
+Known limitations so far (see [docs/REVIEW.md](docs/REVIEW.md) for evidence and proposed tests):
+- **CSRF from the same site (M1):** organizer POSTs without a body (cancel event, logout) also accept a plain HTML form submit. `SameSite=Strict` blocks other *sites*, but not another app on the same site (for example another port on `localhost`).
+- **Logout doesn't revoke (M2):** the organizer cookie is a stateless signed token, valid for up to 12h even after logout, and open organizer streams keep running.
+- **Dev defaults (M3):** compose falls back to the public dev `SESSION_SECRET` / `ORGANIZER_PASSWORD`, and `COOKIE_SECURE` is off. Nothing stops `APP_ENV=production` from using them. **Set real values in `.env` for anything but local use.**
+- **Local-time logic is only tested in UTC (M4).** Emails show UTC times, while the UI shows browser-local times (L1).
 - No rate limiting on login or registration. A duplicate registration reveals whether an email is already registered for that event (accepted trade-off, D-036).
 - Python *transitive* dependencies aren't locked. Only direct ones are pinned. npm dependencies are fully locked.
 - The Vite dev-server proxy target is fixed at `localhost:8000`.

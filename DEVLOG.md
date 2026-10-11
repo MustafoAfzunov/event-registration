@@ -335,3 +335,31 @@ Append-only. One entry per phase (or significant session), with a timestamp from
 - P7 (honest README) stays manual, by nature.
 
 **Next:** phase 9 (independent review and hardening). Not started.
+
+---
+
+## 2026-10-12T04:30:05+06:00 · Phase 9: Independent review and hardening
+
+**Review** (`docs/REVIEW.md`): 2 HIGH, 5 MEDIUM, 7 LOW, each with evidence and a proposed reproducing test. Findings were verified by probes against the running stack before being written down (D-085). Also checked and **not** found: overbooking or duplicate seats, lock-order inversions, SQL injection, XSS, open redirect after login, non-idempotent enqueue.
+
+**HIGH fixes, each test first, one commit each**
+- **H1** (`7eaf106`): a CR/LF in an event title (accepted by the API) made `build_message` raise outside the dispatcher's `try`. The probe showed the poison row and its 3 batch-mates stuck in `sending` after 4 lease cycles, 0 emails delivered, attempts unbounded. `test_review_h1_*` (5 cases) were red, then green after: titles reject control characters, build errors fail the row permanently, rows are isolated, and a row claimed more than the max without completing is given up. A mutation removing the isolation re-fails the isolation test.
+- **H2** (`5638c9c`): manage tokens appeared in uvicorn **and** nginx access logs, contradicting CLAUDE.md "never log tokens". A real-uvicorn log test and a smoke probe were red, then green after: a redaction filter on uvicorn's loggers, an nginx redacted `log_format` without Referer, and `Referrer-Policy: no-referrer`.
+
+**Still open (disclosed in README "Known limitations", proposed tests in REVIEW.md)**
+- M1: same-site CSRF on body-less organizer POSTs.
+- M2: logout doesn't revoke the session.
+- M3: silent dev-secret defaults even with `APP_ENV=production`.
+- M4: local-time logic only tested in UTC.
+- M5: scripts need GNU `date`. The README claim is corrected; the scripts are unchanged.
+- L1–L7: emails show UTC; non-reminder emails aren't re-checked at send; SSE cleanup only unit-tested and no connection cap; three timing-sensitive tests; counter not DB-enforced; `docker compose up` without make untested; N queries per change for N viewers.
+
+**Full suite = `make proof`:**
+- Steps: lint, backend (198), frontend (38), concurrency loop ×5, smoke (13 probes incl. the new token-in-logs probe), e2e (9), stress (17/17; 111.6 req/s, p95 2093ms, 2 workers) — **all PASS**.
+- **245/245 test cases. Requirements: 45 PASS, 1 MANUAL (P7). PROOF PASS.**
+
+**Lessons**
+- Both HIGH bugs sat outside what the earlier tests looked at: a dependency's rule (email headers refuse CR/LF) combined with my own loop structure, and an operational side channel (logs). The happy-path + concurrency + crash tests were all green, which is exactly why an adversarial pass was worth it.
+- One of my own mutation scripts produced invalid Python and "proved" nothing. It was redone precisely and recorded.
+
+**Next:** phase 10 (final docs). Not started.

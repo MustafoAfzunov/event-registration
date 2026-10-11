@@ -494,3 +494,31 @@ Format: **D-NNN, title** · When · Decision · Why · Rejected alternatives.
 ### D-084: E2E mutation evidence
 - **When:** 2026-10-12T03:53:20+06:00
 - **Decision/result:** a frontend-only regression (event page ignores live data) passes every backend test but fails 2 E2E tests: the live seat counter in tab B, and the new date shown live after a reschedule. The other 7 correctly still pass. Restored.
+
+---
+<!-- Phase 9 -->
+
+### D-085: The review was done in this session, but every finding was verified by a probe or a failing test
+- **When:** 2026-10-12T04:25:34+06:00
+- **Decision:** the user asked me to act as a skeptical reviewer (no separate agent was requested). To offset author bias, nothing went into REVIEW.md as *verified* without a probe against the running stack or a red test: the API accepted a CR/LF title; a poison-row probe showed 4 rows stuck after 4 lease cycles; tokens were present in uvicorn and nginx logs; a form-encoded cancel-event got 200; a copied cookie still worked after logout.
+- **Why:** an unverified review is opinion. Severity rule: HIGH = can lose, duplicate or corrupt seats or emails, or breaks an explicit security claim.
+
+### D-086: Message-build errors are permanent; the dispatcher isolates rows (fixes REVIEW H1)
+- **When:** 2026-10-12T04:25:34+06:00
+- **Decision:**
+  - An exception from `build_message` sends the row to `failed` immediately ("unsendable: …"), with no retries.
+  - Any other unexpected exception while handling a row is logged, and that row waits for its lease while the batch continues.
+  - A row claimed more than `OUTBOX_MAX_ATTEMPTS` times without completing is given up.
+  - Titles reject control characters (422).
+- **Why:** before the fix, one bad row aborted `run_once`, and its batch-mates were re-claimed together with it after every lease, forever. Innocent tickets were never sent and nothing showed as failed. Validation alone isn't enough: future bugs or other inputs could poison a row again, so the dispatcher must be robust on its own.
+
+### D-087: Capability tokens are redacted from access logs; Referrer-Policy no-referrer (fixes REVIEW H2)
+- **When:** 2026-10-12T04:25:34+06:00
+- **Decision:** a logging filter on `uvicorn.access`/`uvicorn.error` (installed in `create_app`, so it applies to every worker and to tests) rewrites `/api/registrations/<token>` and `/r/<token>` to `…/[redacted]`. nginx uses a `log_format` with a redacted URI (via `map`) and no Referer, and sends `Referrer-Policy: no-referrer`.
+- **Why:** the token grants view and cancel. Logs are read by more people than the participant. Redacting, rather than switching access logs off, keeps operations debuggable.
+- **Not covered:** Mailpit and real mailboxes hold the token by design (that's how it's delivered).
+
+### D-088: MEDIUM/LOW review findings stay open for now and are disclosed in the README
+- **When:** 2026-10-12T04:25:34+06:00
+- **Decision:** the user asked to fix the HIGH findings. M1–M4 and L1–L7 are documented with proposed tests in `docs/REVIEW.md` and summarized under "Known limitations". M5's false README claim was corrected, though the scripts still need GNU `date`.
+- **Why:** an honest README matters more than a short limitations list. Each open item has a ready reproducing test for whoever picks it up.
