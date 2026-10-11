@@ -50,3 +50,52 @@ Append-only. One entry per phase (or significant session), with a timestamp from
 - `/health` (without the `/api` prefix) isn't reachable through nginx on :8080, only on backend :8000. This is intentional (D-021).
 
 **Next:** phase 2 (registration core + waitlist + locking). Not started.
+
+---
+
+## 2026-10-11T14:50:17+06:00 · Phase 2: Registration core, waitlist and locking
+
+**Context:** the user approved the phase 2 plan as part of the phase 3 request (D-031). Phase 2 is committed on its own, before phase 3.
+
+**Done**
+- **API:**
+  - Organizer: login/logout/me (signed httpOnly SameSite=Strict cookie), events create/list/patch. No delete, by design.
+  - Public: events list/get, register.
+  - Participant: `GET /api/registrations/{token}`, `POST …/cancel`.
+  - One error envelope for all errors (`DomainError`, validation, 404/405).
+- **Concurrency core** (`app/services/seats.py`): `lock_event` (`SELECT … FOR UPDATE`) starts every seat-changing transaction, with lock order event → registrations. `seats_taken` is changed only under the lock. FIFO promotion runs in the same transaction that frees the seat (cancel, capacity increase).
+- **Registration:**
+  - Email trimmed, validated (ASCII, no DNS) and lowercased.
+  - A duplicate returns the existing row (200, no email).
+  - Waitlist via `queue_seq` taken under the lock.
+  - Ticket-code collisions retried in a SAVEPOINT.
+  - The unique-index backstop is handled.
+- Outbox rows (ticket / waitlisted / promoted / cancelled) are written in the same transaction, with dedupe keys. **Not sent yet.**
+- **Test tooling:** `tests/concurrency.py` (lock gate proven via pg_locks), `tests/invariants.py` (checked after every concurrency test), helpers, `make test-concurrency-loop N=20`.
+- **Smoke:** a new 8th probe runs organizer login → create event → register ×2 (confirmed, waitlisted) through nginx on the real 2-worker stack.
+
+**Tests:** `make lint && make test-all` → lint/types clean, **backend 98 passed**, frontend 4 passed, smoke 8/8.
+
+**Concurrency evidence**
+- `make test-concurrency-loop N=20`: **20/20 runs passed** (6 tests each, ~4s per run). Since the last-seat test does 25 gated rounds, that's **500 proven last-seat races**.
+- Your 6 scenarios:
+  1. 20 parallel / 5 seats → 5 + 15, positions 1..15.
+  2. Last seat, gated.
+  3. Same email ×10, identical and case/whitespace variants → 1 row, 1 outbox row.
+  4. Case/whitespace variants.
+  5. FIFO promotion, including skipping a waitlister who left.
+  6. 5 cancels + 10 registrations in parallel, random order: an observer saw confirmed ≤ 5 throughout, the 5 oldest waitlisters got the seats, and no newcomer jumped the queue.
+- **Mutation** (`FOR UPDATE` removed): 3/6 concurrency tests failed, every time with `CheckViolation ck_events_seats_taken_range`. The DB refused to overbook (D-040). Restored.
+
+**Surprises**
+- The first gated run reported "1/20 waiting" while all 20 were blocked. `pg_stat_activity` is snapshotted per transaction, so the poller now runs in AUTOCOMMIT (D-033).
+- The deployed-stack smoke probe got 422 for `@smoke.test`. email-validator rejects special-use domains, which is correct, so it's now pinned in tests (D-042).
+- SQLAlchemy 2.1 types `Select` variadically (`Select[Event]`). mypy caught it.
+
+**Not done / known gaps**
+- Emails aren't sent (phase 3). No check-in, live updates, reminders, reschedule or event cancel endpoints (phases 4–6). No UI (phase 7).
+- E5/E8 edge cases (cancelled event, checked-in ticket) are tested by setting state via SQL until those endpoints exist.
+- Concurrency tests are in-process (one Python process, many Postgres connections). The multi-process HTTP stress test is phase 8.
+- No rate limiting. Duplicate registration reveals registration status (D-036).
+
+**Next:** phase 3 (email worker), in this same session, per the user's instruction.

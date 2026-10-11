@@ -184,3 +184,60 @@ Format: **D-NNN, title** · When · Decision · Why · Rejected alternatives.
 - **When:** 2026-10-11T10:10:04+06:00
 - **Decision:** `test_models_match_migrations` runs Alembic `compare_metadata` against the migrated test DB and requires zero diffs.
 - **Why:** hand-written migrations (D-002) plus ORM models are two sources of truth, and this test keeps them aligned. Mutation-checked: adding a model-only column or removing the partial unique index from the migration makes it fail.
+
+---
+<!-- Phase 2 -->
+
+### D-031: Phase 2 plan approved, with its three scoped decisions
+- **When:** 2026-10-11T14:46:03+06:00
+- **Decision:** the user approved (via a question in the phase 3 request) building phase 2 as planned, then phase 3, as separate commits. Approved scope:
+  - (a) Events are create, read and update only, with **no DELETE**. Removal = "cancel event" (phase 6, ARCHITECTURE E27). `PATCH` rejects `starts_at` (reschedule is its own endpoint, phase 6).
+  - (b) Concurrency tests run in-process: ASGI app, N real Postgres connections. The multi-process HTTP stress test stays in phase 8.
+  - (c) Outbox rows are written from phase 2 on. Sending starts in phase 3.
+
+### D-032: Services own their transactions; register retries once on the unique-index backstop
+- **When:** 2026-10-11T14:46:03+06:00
+- **Decision:** service functions take the sessionmaker and open `async with sm() as s, s.begin()` themselves. `register` catches an `IntegrityError` on `uq_registrations_active_email` (logged at ERROR, because the lock should make it unreachable), re-reads, and returns the existing row as a duplicate.
+- **Why:** the transaction boundary *is* the correctness unit (lock to commit), so it belongs next to the logic, not in the route. A retry after a constraint error needs a fresh transaction anyway.
+
+### D-033: Concurrency tests prove the race via pg_locks ("lock gate")
+- **When:** 2026-10-11T14:46:03+06:00
+- **Decision:** `tests/concurrency.py`: a separate connection holds `FOR UPDATE` on the event. N requests are fired. The test polls `pg_locks`/`pg_stat_activity` until N backends are blocked, then releases.
+- **Why:** `asyncio.gather` alone doesn't guarantee overlap. With the gate, "at the same moment" is a verified fact.
+- **Pitfall found:** `pg_stat_activity` is snapshotted once per transaction, so polling must run in AUTOCOMMIT. Otherwise the poller sees a stale snapshot (it first reported 1/20 waiters while all 20 were actually blocked).
+
+### D-034: Only ASCII email addresses are accepted
+- **When:** 2026-10-11T14:46:03+06:00
+- **Decision:** reject non-ASCII addresses with `invalid_email`.
+- **Why:** Python's `str.lower()` and Postgres `lower()` (collation-dependent) can disagree on non-ASCII letters. That would violate the `email_normalized = lower(email_normalized)` CHECK, or let two spellings of one address bypass the uniqueness rule. SMTPUTF8 addresses are rare. Correctness wins over coverage here.
+
+### D-035: Ticket-code collisions are retried inside a SAVEPOINT
+- **When:** 2026-10-11T14:46:03+06:00
+- **Decision:** insert in `begin_nested()`. On `uq_registrations_ticket_code`/`uq_registrations_manage_token`, regenerate (up to 5 tries).
+- **Why:** a collision mustn't abort the outer transaction or drop the event lock. Tested by forcing collisions (`test_code_collision_retries`).
+
+### D-036: Accepted trade-off: duplicate registration reveals that an email is registered
+- **When:** 2026-10-11T14:46:03+06:00
+- **Decision:** a repeat registration returns 200 with the existing status (and waitlist position), but never the ticket or token.
+- **Why:** the brief requires idempotent re-registration, and telling the user "you're already in" is the useful behaviour. Leaking registration status for an email is low impact. There's no rate limiting (out of scope, README).
+
+### D-037: Waitlist email states the position at the time of joining
+- **When:** 2026-10-11T14:46:03+06:00
+- **Decision:** the `waitlisted` email says "#N on the waitlist". The live position is on the manage page (`GET /api/registrations/{token}`).
+- **Why:** emailing everyone on every queue change would be spam.
+
+### D-038: The canceller gets a `cancelled` confirmation email
+- **When:** 2026-10-11T14:46:03+06:00
+- **Decision:** dedupe key `cancelled:{registration_id}`, enqueued with the cancellation (already listed in ARCHITECTURE 4.5).
+
+### D-039: `app.main.app` is built lazily (module `__getattr__`)
+- **When:** 2026-10-11T14:46:03+06:00
+- **Decision:** `uvicorn app.main:app` still works, but importing `app.main` (tests, tools) no longer constructs `Settings()`, which now has required secrets. Alembic reads `DATABASE_URL` directly, so the `migrate` service needs no app secrets.
+
+### D-040: Evidence that the lock is load-bearing, and that the DB backstop works on its own
+- **When:** 2026-10-11T14:46:03+06:00
+- **Decision/result:** mutation run with `.with_for_update()` removed from `lock_event`: 3/6 concurrency tests fail (20-for-5, 100-for-10, last-seat). **Every** failure was `CheckViolation ck_events_seats_taken_range`: the DB refused to overbook, so the requests errored (500) instead of producing a wrong state. The same-email test still passed thanks to the partial unique index. Both layers work independently. The lock is required for *correct answers*, and the constraints guarantee *no corrupt state*.
+
+### D-041: Test app pool = 40 + 10 overflow connections
+- **When:** 2026-10-11T14:46:03+06:00
+- **Decision:** `make_settings` in tests sets `db_pool_size=40`, so 20 gated requests truly hold 20 connections at once (verified by the gate). Production default stays 10 + 20 per process.

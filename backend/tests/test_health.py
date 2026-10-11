@@ -6,6 +6,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import Settings
 from app.main import create_app
+from tests.conftest import make_settings
 
 
 async def _client_for(settings: Settings) -> AsyncIterator[AsyncClient]:
@@ -17,15 +18,15 @@ async def _client_for(settings: Settings) -> AsyncIterator[AsyncClient]:
 
 @pytest.fixture
 async def client(test_db_url: str) -> AsyncIterator[AsyncClient]:
-    async for c in _client_for(Settings(database_url=test_db_url)):
+    async for c in _client_for(make_settings(test_db_url)):
         yield c
 
 
 @pytest.fixture
 async def client_without_db() -> AsyncIterator[AsyncClient]:
     # Port 1 on localhost: connection refused immediately, nothing is listening.
-    settings = Settings(
-        database_url="postgresql+psycopg://nobody:nopass@127.0.0.1:1/nothing_test",
+    settings = make_settings(
+        "postgresql+psycopg://nobody:nopass@127.0.0.1:1/nothing_test",
         health_db_timeout_seconds=2.0,
     )
     async for c in _client_for(settings):
@@ -49,8 +50,8 @@ async def test_health_reports_db_error_as_503(client_without_db: AsyncClient, pa
 async def test_health_db_timeout_returns_503_within_budget() -> None:
     """A DB that never answers must not hang the health check (it backs container healthchecks).
     10.255.255.1 is a non-routable address: packets are dropped, so connect() hangs."""
-    settings = Settings(
-        database_url="postgresql+psycopg://nobody:nopass@10.255.255.1:5432/nothing_test",
+    settings = make_settings(
+        "postgresql+psycopg://nobody:nopass@10.255.255.1:5432/nothing_test",
         health_db_timeout_seconds=0.5,
     )
     async for client in _client_for(settings):

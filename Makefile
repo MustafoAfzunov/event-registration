@@ -5,6 +5,7 @@ TEST := $(COMPOSE) --profile test run --rm --build
 
 .DEFAULT_GOAL := help
 .PHONY: help up down clean logs ps migrate test test-backend test-frontend test-smoke test-all \
+        test-concurrency-loop \
         lint lint-backend lint-frontend
 
 help: ## List targets
@@ -39,6 +40,18 @@ test: test-backend test-frontend ## Backend + frontend tests
 
 test-backend: .env ## Backend tests (pytest, real Postgres test DB)
 	$(TEST) backend-test pytest -v
+
+N ?= 20
+test-concurrency-loop: .env ## Run the concurrency tests N times (default 20) as separate pytest processes
+	$(TEST) backend-test sh -c 'pass=0; fail=0; \
+	  for i in $$(seq 1 $(N)); do \
+	    if out=$$(pytest -q tests/test_concurrency.py 2>&1); then \
+	      pass=$$((pass + 1)); echo "run $$i/$(N): PASS  $$(echo "$$out" | tail -1)"; \
+	    else \
+	      fail=$$((fail + 1)); echo "run $$i/$(N): FAIL"; echo "$$out" | tail -40; \
+	    fi; \
+	  done; \
+	  echo "== $$pass passed, $$fail failed out of $(N) runs"; [ $$fail -eq 0 ]'
 
 test-frontend: ## Frontend tests (vitest)
 	$(TEST) frontend-test npm test

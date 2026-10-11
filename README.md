@@ -2,7 +2,7 @@
 
 Event registration with a waitlist, emailed tickets, check-in and a live organizer dashboard. The backend is FastAPI + PostgreSQL, and the frontend is React + Vite. Email goes to Mailpit.
 
-> **Current state: phase 1 of 10 (scaffold + infrastructure).** The stack boots and the health check works end to end. **No registration features exist yet.** The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
+> **Current state: phase 2 of 10.** The registration core works via the API: events (organizer), register, cancel, waitlist, FIFO promotion, and concurrency-safe seat allocation. **Emails are queued in the database but not sent yet (phase 3), and there is no UI beyond a health page (phase 7).** The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
 
 ## Quick start
 
@@ -42,6 +42,7 @@ make test         # backend (pytest, real Postgres) + frontend (vitest)
 make lint         # ruff, ruff format --check, mypy --strict, eslint, tsc
 make test-smoke   # boots a throwaway stack FROM SCRATCH with `make up` and probes it
 make test-all     # test + test-smoke
+make test-concurrency-loop N=20   # concurrency tests 20x as separate processes (flakiness check)
 ```
 
 - **Backend tests** run against a real PostgreSQL database (`eventreg_test`, created automatically on first DB start), never SQLite or mocks. The suite refuses to run against any database whose name doesn't end in `_test`.
@@ -65,11 +66,15 @@ Full design, including the concurrency mechanisms, data model and edge-case deci
 | `GET /api/health` + `/health` with DB check (200 / 503 within a 2s budget) | ✅ tested |
 | Full DB schema (events, registrations, email_outbox) with constraints | ✅ migration up/down/up tested; key constraints tested directly |
 | Frontend shell calling `/api/health` | ✅ tested (vitest) and checked manually in a browser |
-| Registration, waitlist, cancel, tickets, emails, check-in, live updates, reminders, reschedule | ❌ not implemented yet (phases 2–6) |
-| Organizer auth | ❌ not implemented yet (phase 2) |
+| Organizer login (cookie) + event create / list / update (capacity changes promote the waitlist) | ✅ API, tested |
+| Register by email (normalized, duplicate-safe), waitlist, cancel via manage link, FIFO promotion | ✅ API, tested |
+| Last-seat race / parallel registrations / same email in parallel / parallel cancel + register | ✅ real-Postgres concurrency tests, passed 20 runs in a row (`make test-concurrency-loop`) |
+| Emails | ⚠️ written to the outbox table in the same transaction, **not sent yet** (phase 3) |
+| Check-in, live updates, reminders, reschedule, event cancel | ❌ not implemented yet (phases 4–6) |
 | Background worker (email outbox, scheduler) | ❌ not implemented yet (phase 3) |
 | E2E browser tests | ❌ phase 8 |
 
 Known limitations so far:
+- No rate limiting on login or registration. A duplicate registration reveals whether an email is already registered for that event (accepted trade-off, D-036).
 - Python *transitive* dependencies aren't locked. Only direct ones are pinned. npm dependencies are fully locked.
 - The Vite dev-server proxy target is fixed at `localhost:8000`.

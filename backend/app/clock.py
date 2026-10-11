@@ -1,7 +1,7 @@
 """Injectable time source. Business logic must take `now` from a Clock, never from
 datetime.now() or SQL now(), so tests can control time (DECISIONS D-018)."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 
@@ -24,6 +24,9 @@ class FixedClock:
 
     def now(self) -> datetime:
         return self._now
+
+    def advance(self, delta: timedelta) -> None:
+        self._now += delta
 
     def set(self, at: datetime) -> None:
         if at.tzinfo is None:

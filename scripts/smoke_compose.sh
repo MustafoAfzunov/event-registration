@@ -61,4 +61,24 @@ docker compose exec -T db psql -U "$PGUSER" -d "$PGDB" -tAc \
   "SELECT 1 FROM pg_database WHERE datname = '${PGDB}_test'" | grep -q 1 || fail "test DB missing"
 ok "test database ${PGDB}_test was created by the init script"
 
+# Registration path through nginx on the real 2-worker deployment (organizer cookie + API).
+jar=$(mktemp); trap 'rm -f "$jar"; cleanup' EXIT
+api="http://localhost:$FRONTEND_PORT/api"
+pw="${ORGANIZER_PASSWORD:-organizer-dev-password}"
+[[ -f .env ]] && pw=$(grep -E '^ORGANIZER_PASSWORD=' .env | cut -d= -f2- || echo "$pw")
+code=$(curl -s -o /dev/null -w '%{http_code}' -c "$jar" -H 'Content-Type: application/json' \
+  -d "{\"password\":\"$pw\"}" "$api/admin/login")
+[[ "$code" == "204" ]] || fail "organizer login returned $code"
+starts=$(date -u -d '+7 days' +%Y-%m-%dT%H:%M:%SZ)
+event=$(curl -fsS -b "$jar" -H 'Content-Type: application/json' \
+  -d "{\"title\":\"Smoke\",\"starts_at\":\"$starts\",\"capacity\":1}" "$api/admin/events") \
+  || fail "create event"
+event_id=$(echo "$event" | sed -E 's/.*"id":"([^"]+)".*/\1/')
+# example.com: email-validator rejects special-use domains such as .test/.local.
+r1=$(curl -sS -H 'Content-Type: application/json' -d '{"email":"One@Example.com"}' "$api/events/$event_id/registrations")
+r2=$(curl -sS -H 'Content-Type: application/json' -d '{"email":"two@example.com"}' "$api/events/$event_id/registrations")
+[[ "$r1" == *'"status":"confirmed"'* && "$r2" == *'"status":"waitlisted"'* ]] \
+  || fail "registration flow: $r1 / $r2"
+ok "organizer login + create event + register (confirmed, then waitlisted) via nginx"
+
 echo "SMOKE PASS: $passed checks"

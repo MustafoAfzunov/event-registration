@@ -12,6 +12,9 @@ x-db-env: &db-env
 x-backend-env: &backend-env
   APP_ENV: ${APP_ENV:-development}
   DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-eventreg}:${POSTGRES_PASSWORD:-eventreg}@db:5432/${POSTGRES_DB:-eventreg}
+  ORGANIZER_PASSWORD: ${ORGANIZER_PASSWORD:-organizer-dev-password}
+  SESSION_SECRET: ${SESSION_SECRET:-dev-only-session-secret-change-me-0123456789}
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
 
 x-backend-build: &backend-build
   context: ./backend

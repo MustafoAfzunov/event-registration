@@ -17,7 +17,7 @@ The brief leaves some points open. These are the assumptions we work from. Each 
 | A7 | When does registration close? | At `starts_at`. After that, register, cancel and capacity changes are rejected. |
 | A8 | Check-in window | Check-in is allowed any time while the event is `scheduled`, with no time window. The event has no end time, so we don't invent one. |
 | A9 | Does the registration API return the ticket? | **No.** The ticket code and manage link are delivered **only by email**. If the API returned them, anyone who typed someone else's email would get that person's ticket (the duplicate-registration path makes this obvious). The API returns only status and waitlist position. |
-| A10 | Email normalization | Trim, then lowercase the **whole address**, and validate syntax with `email-validator` (no DNS lookup). We do **not** strip Gmail dots or `+tags`, because those rules belong to one provider. The address as entered is kept for display. |
+| A10 | Email normalization | Trim, then lowercase the **whole address**, and validate syntax with `email-validator` (no DNS lookup). **ASCII addresses only** (D-034): Python and Postgres `lower()` can disagree on non-ASCII letters. We do **not** strip Gmail dots or `+tags`, because those rules belong to one provider. The address as entered is kept for display. |
 
 ## 2. System overview
 

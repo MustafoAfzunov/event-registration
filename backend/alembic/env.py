@@ -1,7 +1,8 @@
+import os
+
 from sqlalchemy import create_engine, pool
 
 from alembic import context
-from app.config import get_settings
 from app.models import Base
 
 config = context.config
@@ -10,7 +11,8 @@ target_metadata = Base.metadata
 
 def _url() -> str:
     # Callers (tests) may set sqlalchemy.url explicitly; otherwise use DATABASE_URL.
-    return config.get_main_option("sqlalchemy.url") or get_settings().database_url
+    # Read the env var directly so migrating needs no unrelated app settings (secrets).
+    return config.get_main_option("sqlalchemy.url") or os.environ["DATABASE_URL"]
 
 
 def run_migrations_offline() -> None:

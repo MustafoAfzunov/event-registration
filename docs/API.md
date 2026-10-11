@@ -59,7 +59,8 @@ There's no ticket code and no token in the response (ARCHITECTURE A9). Both are 
 | 404 | `event_not_found` | |
 | 409 | `event_cancelled` | event is cancelled |
 | 409 | `registration_closed` | `starts_at <= now` |
-| 422 | `invalid_email` | fails syntax validation |
+| 422 | `invalid_email` | fails syntax validation, is non-ASCII, or is longer than 320 chars |
+| 422 | `validation_error` | malformed body (e.g. missing `email`, unknown fields) |
 
 ---
 
@@ -125,7 +126,7 @@ All events, including past and cancelled, newest `starts_at` first. Same shape a
 `201` returns the event · `422 validation_error` · `422 starts_in_past`
 
 ### `PATCH /api/admin/events/{event_id}` — phase 2
-Any subset of `{ "title", "description", "capacity" }`. **`starts_at` isn't accepted here.** Use reschedule, so the notification semantics stay explicit.
+Any subset of `{ "title", "description", "capacity" }`. Unknown fields (including `starts_at`) → `422 validation_error`. **`starts_at` isn't accepted here.** Use reschedule, so the notification semantics stay explicit.
 
 `200` returns the event and `promoted_count` (when capacity grew).
 

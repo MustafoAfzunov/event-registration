@@ -1,6 +1,18 @@
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 
-def make_engine(database_url: str) -> AsyncEngine:
+def make_engine(database_url: str, pool_size: int = 10, max_overflow: int = 20) -> AsyncEngine:
     # pool_pre_ping: survive Postgres restarts without surfacing stale-connection errors.
-    return create_async_engine(database_url, pool_pre_ping=True)
+    return create_async_engine(
+        database_url, pool_pre_ping=True, pool_size=pool_size, max_overflow=max_overflow
+    )
+
+
+def make_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+    # expire_on_commit=False: services return ORM objects that are read after commit.
+    return async_sessionmaker(engine, expire_on_commit=False)

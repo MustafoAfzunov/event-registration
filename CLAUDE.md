@@ -19,6 +19,7 @@ make test                                  # backend (pytest, real Postgres even
 make test-backend                          # pytest -v in the backend-test container (extra args: docker compose --profile test run --rm backend-test pytest -k ...)
 make test-frontend                         # vitest in the frontend-test container
 make test-smoke                            # boots an isolated throwaway stack from scratch via `make up` and probes it
+make test-concurrency-loop N=20            # tests/test_concurrency.py N times as separate pytest processes (flakiness check)
 make test-all                              # test + test-smoke  <- the "full test suite" for phase reports
 make lint                                  # ruff check, ruff format --check, mypy --strict, eslint, tsc --noEmit
 make migrate                               # alembic upgrade head
@@ -43,7 +44,8 @@ If a command here goes stale, fix this file in the same commit.
 - Never call SQL `now()` or `datetime.now()` in business logic. Use the injected `Clock` and pass `:now` as a bound parameter.
 - Status transitions follow the state machine in ARCHITECTURE §4.10. Anything else raises a typed domain error that maps to the `code` in `docs/API.md`.
 - DB constraints are the last line of defence. Don't remove or loosen one to make code work.
-- Concurrency tests must use **separate DB connections or real HTTP**, never a shared session.
+- Concurrency tests must use **separate DB connections or real HTTP**, never a shared session. To claim "at the same moment", use `tests/concurrency.py` (`event_lock_gate` + `wait_for_lock_waiters`), which proves via `pg_locks` that all N requests were blocked on the lock before releasing them. Finish every concurrency test with `tests/invariants.py::assert_invariants`.
+- Services own their transactions (`async with sessionmaker() as s, s.begin()`). Routes never open sessions for writes.
 
 ## Coding conventions
 - **Schema changes:** update `app/models.py` AND add a migration. `test_models_match_migrations` fails on any drift.
