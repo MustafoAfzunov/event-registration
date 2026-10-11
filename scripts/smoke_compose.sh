@@ -44,7 +44,10 @@ body=$(curl -fsS "http://localhost:$FRONTEND_PORT/api/health") || fail "frontend
 ok "frontend :$FRONTEND_PORT/api/health (nginx -> backend over compose network) -> $body"
 
 curl -fsS "http://localhost:$FRONTEND_PORT/" | grep -q '<div id="root">' || fail "frontend index.html"
-ok "frontend :$FRONTEND_PORT/ serves the React app"
+for deep in /events/x /r/x /admin /admin/events/x/checkin; do
+  curl -fsS "http://localhost:$FRONTEND_PORT$deep" | grep -q '<div id="root">' || fail "deep link $deep"
+done
+ok "frontend :$FRONTEND_PORT/ serves the React app, incl. deep links (SPA fallback)"
 
 curl -fsS "http://localhost:$MAILPIT_UI_PORT/api/v1/info" >/dev/null || fail "mailpit API"
 ok "mailpit :$MAILPIT_UI_PORT/api/v1/info responds"

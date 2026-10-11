@@ -13,7 +13,7 @@ Every mandatory requirement maps to at least one automated test. Test names matc
 
 | ID | Requirement | Test(s) | Phase |
 |---|---|---|---|
-| P1 | Separate backend (FastAPI) and frontend (React+Vite) talking over the network | `test_health.py::test_health_ok`; `App.test.tsx::calls_api_health_and_shows_ok`; smoke probe "frontend /api/health (nginx → backend over compose network)". E2E: every spec drives the UI on :8080, which calls the backend container through the nginx proxy | 1, 8 |
+| P1 | Separate backend (FastAPI) and frontend (React+Vite) talking over the network | `test_health.py::test_health_ok`; `App.test.tsx::calls_api_health_and_shows_ok`; smoke deep-link probe; smoke probe "frontend /api/health (nginx → backend over compose network)". E2E: every spec drives the UI on :8080, which calls the backend container through the nginx proxy | 1, 8 |
 | P2 | PostgreSQL | `test_schema.py::test_migrations_upgrade_downgrade_upgrade`, `::test_models_match_migrations` (and the whole suite runs on Postgres) | 1 |
 | P3 | One-command local run via docker compose | `scripts/smoke_compose.sh` (`make test-smoke`): runs `make up` on fresh volumes in an isolated project, then probes backend, nginx proxy, SPA, Mailpit, migration head and test DB. Phase 10 DoD repeats it from a clean clone | 1, 10 |
 | P4 | Email emulated with Mailpit | `test_email_delivery.py::test_one_email_per_registration`; smoke probe "worker delivered exactly 2 emails"; E2E `registration.spec.ts` | 3, 8 |
@@ -25,13 +25,13 @@ Every mandatory requirement maps to at least one automated test. Test names matc
 
 | ID | Requirement | Test(s) | Phase |
 |---|---|---|---|
-| D1 | Event has description, date/time, seat limit | `test_schema.py::test_seats_taken_check_rejects_overbooking`; admin create covered in `test_capacity.py`; `AdminDashboard.test.tsx::renders_live_counts` | 1, 2, 7 |
-| D2 | Participant registers by email | `test_registration.py::test_register_confirms_when_seat_available`; `EventPage.test.tsx::shows_confirmed_after_register` | 2, 7 |
-| D3 | Participant can cancel | `test_cancel.py::test_cancel_confirmed_promotes_first_waitlisted`, `::test_cancel_is_idempotent`; `ManagePage.test.tsx::shows_ticket_code_and_cancels` | 2, 7 |
-| D4 | Waitlist when full | `test_registration.py::test_register_waitlists_when_full`; `EventPage.test.tsx::shows_waitlist_position_when_full` | 2, 7 |
+| D1 | Event has description, date/time, seat limit | `test_schema.py::test_seats_taken_check_rejects_overbooking`; admin create covered in `test_capacity.py`; `AdminDashboard.test.tsx::renders_live_counts_and_refreshes_participants`, `::filters_participants_by_status` | 1, 2, 7 |
+| D2 | Participant registers by email | `test_registration.py::test_register_confirms_when_seat_available`; `EventPage.test.tsx::shows_confirmed_after_register`, `::shows_already_registered_without_a_second_seat`, `::shows_error_for_invalid_email` | 2, 7 |
+| D3 | Participant can cancel | `test_cancel.py::test_cancel_confirmed_promotes_first_waitlisted`, `::test_cancel_is_idempotent`; `TicketPage.test.tsx::shows_ticket_code_and_cancels`, `::does_nothing_if_cancel_not_confirmed`, `::shows_error_when_cancel_fails` | 2, 7 |
+| D4 | Waitlist when full | `test_registration.py::test_register_waitlists_when_full`; `EventPage.test.tsx::shows_waitlist_position_when_full`, `::shows_details_and_seats_left_updating_live`; `TicketPage.test.tsx::shows_waitlist_position_without_code` | 2, 7 |
 | D5 | Ticket with a code | `test_codes.py::test_ticket_code_alphabet_and_length`, `::test_ticket_codes_look_random`, `::test_code_collision_retries`; `test_schema.py::test_ticket_code_format_enforced`; `test_email_delivery.py::test_one_email_per_registration` | 2, 3 |
-| D6 | Check-in screen: typing the code replaces a scanner | `test_checkin.py::test_checkin_success`, `::test_checkin_normalizes_input`; `CheckIn.test.tsx::success_clears_input_and_shows_green`; E2E `checkin.spec.ts` | 4, 7, 8 |
-| D7 | Organizer screen: registered, waitlisted, checked-in counts | `test_stats.py::test_stats_after_every_kind_of_transition`, `::test_stats_never_inconsistent_during_concurrent_writes`, `::test_registrations_list_order_filter_and_positions`; `AdminDashboard.test.tsx::renders_live_counts` | 4, 7 |
+| D6 | Check-in screen: typing the code replaces a scanner | `test_checkin.py::test_checkin_success`, `::test_checkin_normalizes_input`; `CheckIn.test.tsx::success_clears_input_and_shows_green`, `::already_checked_in_shows_red_with_time`, `::error_<code>_has_its_own_message`; E2E `checkin.spec.ts` | 4, 7, 8 |
+| D7 | Organizer screen: registered, waitlisted, checked-in counts | `test_stats.py::test_stats_after_every_kind_of_transition`, `::test_stats_never_inconsistent_during_concurrent_writes`, `::test_registrations_list_order_filter_and_positions`; `AdminDashboard.test.tsx::renders_live_counts_and_refreshes_participants`, `::filters_participants_by_status` | 4, 7 |
 
 ## Behaviour requirements
 

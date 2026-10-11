@@ -421,3 +421,44 @@ Format: **D-NNN, title** · When · Decision · Why · Rejected alternatives.
 - **When:** 2026-10-12T02:47:37+06:00
 - **Decision:** the send-time check covers a reminder claimed *before* the reschedule (tested). It can't cover the instant after the check passed and while SMTP is transmitting. That message carries the old date, and the "New date" email follows right after.
 - **Why:** closing it would need a lock across the SMTP call, which would block the reschedule on a mail server. The window is milliseconds and the outcome is corrected by the next email.
+
+---
+<!-- Phase 7 -->
+
+### D-073: Frontend structure: React Router v8 declarative routes, one API client, no state library
+- **When:** 2026-10-12T03:24:56+06:00
+- **Decision:**
+  - `App.tsx` holds the full route table (`AppRoutes`, also used by tests).
+  - `api.ts` is the only module that calls `fetch`. It turns every failure into `ApiError(status, code, details)`, including network errors (`network_error`).
+  - `errors.ts` maps codes to sentences.
+  - Pages keep local `useState`. Organizer pages sit behind `RequireOrganizer` (asks `/api/admin/me`; 401 → login with `?next=`, and only `/admin…` targets are accepted, so there's no open redirect).
+- **Why:** a handful of pages doesn't justify Redux or React Query. A single client keeps error handling uniform. React Router 8 is current, and its exports were checked before use.
+
+### D-074: Cancel happens on the ticket page (`/r/:token`), never on the public event page
+- **When:** 2026-10-12T03:24:56+06:00
+- **Decision:** the event page explains "use the link in your email". The ticket page has the cancel button behind a `confirm()`.
+- **Why:** cancelling by typing an email would let anyone cancel anyone (A3/D-012). The brief's "cancel via ticket" maps to the emailed capability link.
+
+### D-075: `useEventStream`: state keyed by URL, last snapshot stays visible while reconnecting
+- **When:** 2026-10-12T03:24:56+06:00
+- **Decision:**
+  - Status values: connecting / live / reconnecting / expired / closed.
+  - On a network error the last numbers stay on screen, marked "reconnecting…", and the browser's EventSource retries by itself.
+  - A server refusal (401/404) gives `closed`. `session_expired` closes the stream and shows "log in again".
+  - State is stored together with its URL, so switching events never shows another event's numbers. This also satisfies the React rule against synchronous `setState` in effects, which the linter flagged in the first version.
+  - The dashboard re-fetches the participant list on every stats frame.
+
+### D-076: Times: entered as `datetime-local` in the browser's zone, sent as UTC ISO, shown in the browser's locale
+- **When:** 2026-10-12T03:24:56+06:00
+- **Decision:** `fromLocalInput()` gives `new Date(value).toISOString()`. Display uses `toLocaleString`. Labels say "(your local time)".
+- **Why:** the API requires timezone-aware instants (naive times get 422). Organizer and participants each see their own local time. A per-event timezone stays out of scope (ARCHITECTURE §7).
+
+### D-077: Component tests render the real routes against a mocked API and a fake EventSource
+- **When:** 2026-10-12T03:24:56+06:00
+- **Decision:** `test/render.tsx::renderAt(path)` uses `MemoryRouter` + `AppRoutes`. `test/fakes.ts` provides a `mockApi` route table (records calls and bodies) and a `FakeEventSource` (`emit` / `fail` / `open`).
+- **Why:** tests exercise what a user does (labels, buttons, alerts), not internals. The real backend plus real browser is phase 8 (Playwright). Phase 7 includes a manual two-tab walkthrough on the real stack (DEVLOG).
+
+### D-078: Door-screen behaviour
+- **When:** 2026-10-12T03:24:56+06:00
+- **Decision:** the input is autofocused and Enter submits. On success: big green "Welcome!", email and time, input cleared, focus kept. On error: big red title per code (Already used + time, Ticket cancelled, No seat (waitlist), Unknown code, Not a ticket code), input text selected for quick correction. There's a live "N / M arrived" counter.
+- **Why:** typing replaces a scanner (brief). Staff must read the result from a distance and move on to the next person without touching the mouse.

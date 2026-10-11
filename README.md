@@ -2,7 +2,7 @@
 
 Event registration with a waitlist, emailed tickets, check-in and a live organizer dashboard. The backend is FastAPI + PostgreSQL, and the frontend is React + Vite. Email goes to Mailpit.
 
-> **Current state: phase 6 of 10.** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats). A background worker emails tickets, waitlist notices and promotions to Mailpit. Organizers can check tickets in (exactly once) and read stats. Counters update live over SSE across backend workers. A scheduler in the worker sends exactly one reminder per confirmed participant 24h before the event, and rescheduling notifies everyone. **There is no UI beyond a health page yet (phase 7), so the manage link in emails points at a page that doesn't exist yet.** The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
+> **Current state: phase 7 of 10.** The registration core works via the API (events, register, cancel, waitlist, FIFO promotion, concurrency-safe seats). A background worker emails tickets, waitlist notices and promotions to Mailpit. Organizers can check tickets in (exactly once) and read stats. Counters update live over SSE across backend workers. A scheduler in the worker sends exactly one reminder per confirmed participant 24h before the event, and rescheduling notifies everyone. A React UI covers every flow (public event page, ticket page, organizer dashboard, check-in). The honest per-phase status is in [Status](#status) and in [DEVLOG.md](DEVLOG.md).
 
 ## Quick start
 
@@ -35,6 +35,14 @@ make help      # all targets
 
 Without make, `docker compose up --build` also works (the compose file has defaults for every variable).
 
+## Using the app
+
+1. Open http://localhost:8080/admin and log in with `ORGANIZER_PASSWORD` from `.env` (dev default: `organizer-dev-password`).
+2. Create an event. Its dashboard shows live counters and the participant list.
+3. Open the event's **public page** (link on the dashboard) in another tab and register with any email. Use `example.com`-style addresses; special-use domains like `.test` are rejected.
+4. Open http://localhost:8025 (Mailpit) to see the ticket email. Its link opens the **ticket page**, which shows the code and has a cancel button.
+5. On the dashboard, open the **check-in screen** and type the code. The dashboard in the other tab updates without reloading.
+
 ## Tests
 
 ```bash
@@ -65,7 +73,7 @@ Full design, including the concurrency mechanisms, data model and edge-case deci
 | Compose stack (db, mailpit, migrate, backend, frontend), one command | ✅ works, proven by `make test-smoke` |
 | `GET /api/health` + `/health` with DB check (200 / 503 within a 2s budget) | ✅ tested |
 | Full DB schema (events, registrations, email_outbox) with constraints | ✅ migration up/down/up tested; key constraints tested directly |
-| Frontend shell calling `/api/health` | ✅ tested (vitest) and checked manually in a browser |
+| UI: event list, event page (live seats, register, outcomes), ticket page (code, cancel), organizer login / events / dashboard (live counters, participants, edit, reschedule, cancel event), check-in screen | ✅ 38 component tests (mocked API) + manual two-tab walkthrough on the real stack; automated browser E2E is phase 8 |
 | Organizer login (cookie) + event create / list / update (capacity changes promote the waitlist) | ✅ API, tested |
 | Register by email (normalized, duplicate-safe), waitlist, cancel via manage link, FIFO promotion | ✅ API, tested |
 | Last-seat race / parallel registrations / same email in parallel / parallel cancel + register | ✅ real-Postgres concurrency tests, passed 20 runs in a row (`make test-concurrency-loop`) |

@@ -262,3 +262,34 @@ Append-only. One entry per phase (or significant session), with a timestamp from
 - The dev stack on :8080 still runs the images from 12h ago. Run `make up` to get phase 6 there.
 
 **Next:** phase 7 (frontend). Not started.
+
+---
+
+## 2026-10-12T03:27:37+06:00 · Phase 7: Frontend
+
+**Done** (React 19 + Vite + React Router 8, no state library)
+- **Public:** events list, event page (details, **live seats left** via SSE, register form with outcomes *confirmed* / *waitlisted #N* / *already registered (no second seat)*, every error code in plain language, form hidden when cancelled or started), ticket page `/r/:token` (big ticket code, waitlist position, checked-in and cancelled states, cancel with confirm).
+- **Organizer:** login and guard (redirects back to the requested page), events list + create, dashboard (live counters incl. "not arrived yet", participant list with status tabs refreshed on every live frame, edit title/description/seat limit, reschedule with "N notified", cancel event, login-expired prompt), check-in screen (autofocus, Enter, big green/red result per error code, cleared on success / selected on error, live "N / M arrived").
+- Loading and error states on every page. `useEventStream` hook. `api.ts` + `errors.ts` error map. Minimal CSS.
+- Smoke: deep links (`/events/x`, `/r/x`, `/admin/…`) are served by the nginx SPA fallback.
+
+**Tests:** `make lint && make test-all` → clean (tsc, eslint incl. react-hooks). **Frontend 38 passed** (was 4), backend 191, smoke 12/12. No `act()` warnings.
+
+**Manual check on the real stack** (built-in browser, two tabs, real backend / SSE / Mailpit):
+1. `/admin` redirected to login. Logged in, created the event "Browser demo" (1 seat), and the dashboard showed the live badge.
+2. In tab 2 (public page), registered `first@` ("You're in!"). The page flipped live to "Full", button "Join waitlist". Registered `second@` ("#1 on the waitlist"). Tab 1's counters and participant list updated **without reload**.
+3. Opened `first@`'s manage link from the real email in Mailpit, and the ticket page showed the code. Cancelled: tab 1 showed `first@` cancelled and `second@` **promoted**, live. *(The cancel was sent with curl to the same API, because the native `confirm()` dialog stalls the automated browser pane. The button flow is covered by component tests, both confirm and decline.)*
+4. Check-in in tab 2: typed `c3yv k2c1` (lowercase, space) and got a green "Welcome!". The same code again was red "Already used" with the time, and the code stayed selected. Tab 1 moved to 1 arrived live.
+- Environment note: the browser pane once blocked the JS bundle in a fresh tab (`ERR_BLOCKED_BY_CLIENT`, client-side). It loaded fine on retry. Not an app issue.
+
+**Bugs found by tests in this phase**
+- The reschedule form was keyed by `starts_at`. A successful reschedule remounted it and wiped the "N participants notified" message. It's now keyed by event id.
+- The first `useEventStream` version called `setState` synchronously in an effect (react-hooks lint). It was reworked to URL-keyed state, which also prevents showing a previous event's numbers after navigation.
+
+**Not done / known gaps**
+- No automated browser E2E yet (phase 8). The component tests mock the API.
+- The UI is in English only, with minimal styling, and has no explicit accessibility audit (labels and roles are used throughout, because tests query by them).
+- Times are shown in the browser's timezone. There's no per-event timezone.
+- The organizer participant list isn't paginated (fine for event-sized lists).
+
+**Next:** phase 8 (E2E and proof). Not started.

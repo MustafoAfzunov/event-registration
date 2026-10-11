@@ -111,15 +111,24 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
 - **DoD:** all pass. The manual demo is replaced by the smoke probe on the real stack (an event 23h ahead gets exactly one reminder in Mailpit). ✅
 
 ## Phase 7: Frontend
-- **Scope:** pages: events list; event page with register form (shows confirmed or waitlisted with position); manage page `/r/:token` (ticket code, cancel); admin login; admin events list + create; admin event dashboard (live counters via EventSource, registrations table, capacity edit, reschedule, cancel event); check-in page (autofocus input, Enter submits, big green/red result, input cleared for next ticket). Error `code` → human message map.
-- **Files:** `frontend/src/{api.ts,useEventStream.ts,errors.ts}`, `frontend/src/pages/{EventsList,EventPage,ManagePage,AdminLogin,AdminEvents,AdminDashboard,CheckIn}.tsx`, `*.test.tsx`.
-- **Tests (Vitest):**
-  - `EventPage.test.tsx::shows_confirmed_after_register`, `::shows_waitlist_position_when_full`, `::shows_error_for_closed_registration`
-  - `ManagePage.test.tsx::shows_ticket_code_and_cancels`
-  - `CheckIn.test.tsx::success_clears_input_and_shows_green`, `::already_checked_in_shows_red_with_time`
-  - `useEventStream.test.ts::applies_snapshots_and_reconnects`
-  - `AdminDashboard.test.tsx::renders_live_counts`
-- **DoD:** every user-facing flow in the brief is clickable in the browser on `localhost:8080`. Tests, `tsc` and eslint are clean.
+- **Scope:** pages:
+  - events list;
+  - event page (details, live seats left, register form, outcomes confirmed / waitlisted / already registered, errors);
+  - ticket page `/r/:token` (ticket code, waitlist position, checked-in and cancelled states, cancel);
+  - organizer login + guard, events list + create, dashboard (live counters, participant list with status tabs, edit, reschedule, cancel event);
+  - check-in (autofocus, Enter submits, big green/red result per error code, input cleared on success / selected on error).
+
+  Error `code` → human message map. Loading and error state on every page.
+- **Files (as built):** `frontend/src/{api.ts,errors.ts,format.ts,useEventStream.ts,App.tsx,index.css}`, `frontend/src/components/ui.tsx`, `frontend/src/pages/{EventsList,EventPage,TicketPage}.tsx`, `frontend/src/pages/admin/{RequireOrganizer,AdminLogin,AdminEvents,AdminDashboard,CheckIn}.tsx`, tests `*.test.tsx`, helpers `frontend/src/test/{fakes.ts,render.tsx}`.
+- **Tests (Vitest, as built; render the real route table with mocked fetch + fake EventSource):**
+  - `App.test.tsx::renders_app_shell`, `::calls_api_health_and_shows_ok`, `::shows_db_down_on_503`, `::lists_upcoming_events_with_links`
+  - `EventPage.test.tsx::shows_details_and_seats_left_updating_live`, `::shows_confirmed_after_register`, `::shows_waitlist_position_when_full`, `::shows_already_registered_without_a_second_seat`, `::shows_error_for_closed_registration`, `::shows_error_for_invalid_email`, `::hides_form_for_cancelled_event`, `::shows_not_found_error`
+  - `TicketPage.test.tsx::shows_ticket_code_and_cancels`, `::does_nothing_if_cancel_not_confirmed`, `::shows_waitlist_position_without_code`, `::shows_checked_in_state_without_cancel`, `::shows_error_when_cancel_fails`, `::shows_invalid_link`
+  - `CheckIn.test.tsx::success_clears_input_and_shows_green`, `::already_checked_in_shows_red_with_time`, `::error_<code>_has_its_own_message` (×5), `::shows_live_arrived_counter`
+  - `AdminDashboard.test.tsx::renders_live_counts_and_refreshes_participants`, `::filters_participants_by_status`, `::reschedules_with_iso_time_and_reports_notified`, `::shows_capacity_error_with_seats_taken`, `::asks_to_log_in_again_when_stream_session_expires`
+  - `AdminAccess.test.tsx::redirects_to_login_then_back_after_login`, `::creates_event_with_iso_time_and_opens_dashboard`
+  - `useEventStream.test.ts::applies_snapshots_and_reconnects`, `::reports_closed_when_server_refuses`, `::stops_on_session_expired`, `::closes_on_unmount_and_ignores_other_events`, `::does_not_connect_without_url`
+- **DoD:** every user-facing flow in the brief is clickable in the browser on `localhost:8080`. Tests, `tsc` and eslint are clean. ✅ A manual two-tab walkthrough on the real stack is recorded in DEVLOG phase 7.
 
 ## Phase 8: E2E and proof
 - **Scope:** Playwright suite against the running compose stack, reading real emails through the Mailpit API. A load/stress script for the concurrency claim with printed results. CI-style one-liner `make e2e`.
