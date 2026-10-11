@@ -58,7 +58,7 @@ The frontend and backend are separate containers that talk over the compose netw
 | Organizer auth | Password → **signed httpOnly cookie** (`itsdangerous`), `SameSite=Strict` | `EventSource` can't send an `Authorization` header, so a cookie fits. Putting the token in the query string would leak it into logs. With a single origin, SameSite=Strict plus JSON-only bodies covers CSRF for this scope. |
 | Participant auth | **Capability tokens**: `manage_token` (32 bytes, urlsafe) in the emailed link | Participants have no accounts. Whoever holds the link controls the registration, the usual pattern for event tickets. |
 | Ticket code | 8 chars of Crockford base32 (≈40 bits), shown as `ABCD-EFGH` | It's short enough to type at the door. Input normalization ignores case, spaces and dashes, and maps O→0, I/L→1. A unique index catches collisions, and insert retries on conflict. |
-| Frontend | **React 18 + Vite + TypeScript**, React Router, plain `fetch` | Required by the brief. With no state library, the app is a handful of pages and hooks. |
+| Frontend | **React 19 + Vite 8 + TypeScript 6.0**, React Router, plain `fetch` | Required by the brief. With no state library, the app is a handful of pages and hooks. |
 | Tests (backend) | **pytest + pytest-asyncio + httpx.AsyncClient**, against **real Postgres** | Locking semantics can't be tested on SQLite or with mocks. Concurrency tests use separate DB connections. |
 | Tests (frontend) | **Vitest + Testing Library** | Native to Vite. |
 | E2E | **Playwright** against the full compose stack, reading emails from the Mailpit API | It proves the real system: two browser contexts (the "two tabs"), real SMTP and real SSE. |

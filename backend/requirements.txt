@@ -1,0 +1,8 @@
+# Direct runtime dependencies, pinned exactly. Transitive deps are resolved by pip (see DECISIONS D-024).
+fastapi==0.143.0
+uvicorn[standard]==0.54.0
+sqlalchemy[asyncio]==2.1.4
+alembic==1.20.0
+psycopg[binary]==3.3.6
+pydantic==2.14.0
+pydantic-settings==2.15.0

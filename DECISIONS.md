@@ -128,3 +128,59 @@ Format: **D-NNN, title** · When · Decision · Why · Rejected alternatives.
 - **When:** 2026-10-11T09:51:04+06:00
 - **Decision:** no check-in time window.
 - **Why:** the brief defines no end time, and inventing one adds rules nobody asked for. Recorded as an assumption.
+
+---
+<!-- Phase 1 -->
+
+### D-021: Health served at both `/api/health` and `/health`
+- **When:** 2026-10-11T10:10:04+06:00
+- **Decision:** one handler, two routes. `/api/health` is the contract (docs/API.md) and is reachable through nginx. `/health` is the alias the user asked for, used by the container healthcheck.
+- **Why:** this keeps the documented `/api` prefix while honouring the request. The DB probe has a 2s budget (`asyncio.timeout`), so a hung DB yields a 503, never a hung healthcheck.
+
+### D-022: Migrations run in a one-shot `migrate` compose service
+- **When:** 2026-10-11T10:10:04+06:00
+- **Decision:** `migrate` (backend image, `alembic upgrade head`) must exit 0 before `backend` starts (`service_completed_successfully`).
+- **Why:** the backend runs 2 uvicorn workers. Migrating in each worker's startup would race, and Alembic takes no lock.
+- **Rejected:** migrating in the backend entrypoint (breaks once there are several replicas); migrating at app startup.
+
+### D-023: Worker container deferred from phase 1 to phase 3 (supersedes the PLAN phase 1 item)
+- **When:** 2026-10-11T10:10:04+06:00
+- **Decision:** no `worker` service yet.
+- **Why:** the user's phase 1 service list (postgres, mailpit, backend, frontend) doesn't include it, and a heartbeat-only stub proves nothing. Phase 3 adds it together with the outbox dispatcher it exists for. PLAN.md updated.
+
+### D-024: Python direct deps pinned exactly; transitive deps not locked (yet)
+- **When:** 2026-10-11T10:10:04+06:00
+- **Decision:** `requirements*.txt` pin direct deps with `==`. npm is fully locked via `package-lock.json`.
+- **Why:** this is the boring option. A full Python lock (pip-tools/uv) is extra tooling. **Known gap:** a transitive release could change behaviour between builds. Listed in the README. Revisit in phase 9.
+
+### D-025: Frontend toolchain versions: React 19, Vite 8, Vitest 5, TypeScript 6.0 (supersedes "React 18" in phase-0 ARCHITECTURE §3)
+- **When:** 2026-10-11T10:10:04+06:00
+- **Decision:** the current stable releases, except TypeScript is held at 6.0.x.
+- **Why:** React 19 is the current stable line, and nothing we use differs from 18. typescript-eslint 8.71 supports `typescript <6.1`, so TS 7 would break linting. TS 6 defaults `types` to `[]`, so `tsconfig` lists `vite/client` explicitly.
+
+### D-026: All tests and linters run in containers via make
+- **When:** 2026-10-11T10:10:04+06:00
+- **Decision:** `backend-test` (backend `dev` image, source bind-mounted) and `frontend-test` (frontend `test` stage) live under compose profile `test`. `package-lock.json` is generated in `node:22-alpine`.
+- **Why:** reviewers need only Docker + make. Host Node (20.20 / npm 10.8) crashed during `npm install` with an internal arborist error, which is exactly the host drift containers avoid.
+- **Detail:** pytest runs with `-p no:cacheprovider`, and the ruff/mypy caches live in `/tmp`, because the container user (uid 10001) can't write to the bind-mounted host directory.
+
+### D-027: Smoke test = real `make up` in an isolated compose project
+- **When:** 2026-10-11T10:10:04+06:00
+- **Decision:** `scripts/smoke_compose.sh` sets `COMPOSE_PROJECT_NAME=eventreg-smoke-<pid>` and ports 18080/18000/18025/15433/11025, runs `make up`, makes 7 probes, and always tears down (`down -v --rmi local`). `SMOKE_NO_CACHE=1` rebuilds images without the build cache.
+- **Why:** this proves "boots from scratch" (fresh volume, so migrations and the DB init script run from zero) without destroying the developer's stack or data.
+- **Evidence it matters:** the first run caught a real bug that unit tests missed. The `alembic` CLI couldn't import `app` (pytest added the path, the CLI didn't). Fixed with `prepend_sys_path = .` in `alembic.ini`.
+
+### D-028: Compose project name `eventreg`; Postgres host port 5433
+- **When:** 2026-10-11T10:10:04+06:00
+- **Decision:** top-level `name: eventreg`. DB published on 5433, because 5432 commonly clashes with a local Postgres. All host ports are overridable in `.env`.
+
+### D-029: Test DB = `<POSTGRES_DB>_test`, created by `infra/db/init-test-db.sh`; suite is destructive by design
+- **When:** 2026-10-11T10:10:04+06:00
+- **Decision:** a shell init script (not `.sql`) so the name follows `POSTGRES_DB`. The suite downgrades to base and upgrades at session start, truncates per test, and **refuses** any DB whose name doesn't end in `_test`.
+- **Why:** each test starts from a known state, and a mis-set env var can't wipe the dev DB.
+- **Caveat:** the init script only runs on first volume creation. Existing volumes from before this phase need `make clean`.
+
+### D-030: Schema drift is a test failure
+- **When:** 2026-10-11T10:10:04+06:00
+- **Decision:** `test_models_match_migrations` runs Alembic `compare_metadata` against the migrated test DB and requires zero diffs.
+- **Why:** hand-written migrations (D-002) plus ORM models are two sources of truth, and this test keeps them aligned. Mutation-checked: adding a model-only column or removing the partial unique index from the migration makes it fail.

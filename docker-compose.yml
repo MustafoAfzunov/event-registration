@@ -1,0 +1,107 @@
+# One-command local stack: `make up` (or `docker compose up --build`).
+# Architecture: docs/ARCHITECTURE.md section 2. Defaults below mirror .env.example so the stack
+# also starts without a .env file.
+
+name: eventreg
+
+x-db-env: &db-env
+  POSTGRES_USER: ${POSTGRES_USER:-eventreg}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventreg}
+  POSTGRES_DB: ${POSTGRES_DB:-eventreg}
+
+x-backend-env: &backend-env
+  APP_ENV: ${APP_ENV:-development}
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-eventreg}:${POSTGRES_PASSWORD:-eventreg}@db:5432/${POSTGRES_DB:-eventreg}
+
+x-backend-build: &backend-build
+  context: ./backend
+  target: runtime
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment: *db-env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/db/init-test-db.sh:/docker-entrypoint-initdb.d/10-init-test-db.sh:ro
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit:v1.31
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # One-shot: applies migrations before the API starts (DECISIONS D-022).
+  migrate:
+    build: *backend-build
+    command: ["alembic", "upgrade", "head"]
+    environment: *backend-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build: *backend-build
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 3s
+      timeout: 4s
+      retries: 20
+
+  frontend:
+    build:
+      context: ./frontend
+      target: runtime
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # --- test-only services (profile "test"; used by `make test` / `make lint`) ---
+  backend-test:
+    profiles: ["test"]
+    build:
+      context: ./backend
+      target: dev
+    environment:
+      <<: *backend-env
+      TEST_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-eventreg}:${POSTGRES_PASSWORD:-eventreg}@db:5432/${POSTGRES_DB:-eventreg}_test
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend-test:
+    profiles: ["test"]
+    build:
+      context: ./frontend
+      target: test
+
+volumes:
+  pgdata:

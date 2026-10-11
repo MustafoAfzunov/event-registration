@@ -22,8 +22,10 @@ Generic codes: `validation_error` (422, `details.fields`), `not_found` (404), `u
 
 ## Health — phase 1
 
-### `GET /api/health`
+### `GET /api/health` (alias: `GET /health`)
 `200 {"status":"ok","db":"ok"}` · `503 {"status":"degraded","db":"error"}`
+
+The DB probe (`SELECT 1`) has a 2s budget (`HEALTH_DB_TIMEOUT_SECONDS`), so the endpoint never hangs. `/health` isn't proxied by nginx (only `/api/*` is). It's used by the container healthcheck and for probing the backend directly.
 
 ---
 

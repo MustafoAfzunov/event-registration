@@ -13,9 +13,9 @@ Every mandatory requirement maps to at least one automated test. Test names matc
 
 | ID | Requirement | Test(s) | Phase |
 |---|---|---|---|
-| P1 | Separate backend (FastAPI) and frontend (React+Vite) talking over the network | `test_health.py::test_health_ok`. E2E: every spec drives the UI on :8080, which calls the backend container through the nginx proxy | 1, 8 |
-| P2 | PostgreSQL | `test_schema.py::test_migrations_upgrade_downgrade_upgrade` (and the whole suite runs on Postgres) | 1 |
-| P3 | One-command local run via docker compose | Phase 10 DoD: clean clone, then `docker compose up --build`, then `make e2e`. E2E itself runs against that stack | 1, 10 |
+| P1 | Separate backend (FastAPI) and frontend (React+Vite) talking over the network | `test_health.py::test_health_ok`; `App.test.tsx::calls_api_health_and_shows_ok`; smoke probe "frontend /api/health (nginx → backend over compose network)". E2E: every spec drives the UI on :8080, which calls the backend container through the nginx proxy | 1, 8 |
+| P2 | PostgreSQL | `test_schema.py::test_migrations_upgrade_downgrade_upgrade`, `::test_models_match_migrations` (and the whole suite runs on Postgres) | 1 |
+| P3 | One-command local run via docker compose | `scripts/smoke_compose.sh` (`make test-smoke`): runs `make up` on fresh volumes in an isolated project, then probes backend, nginx proxy, SPA, Mailpit, migration head and test DB. Phase 10 DoD repeats it from a clean clone | 1, 10 |
 | P4 | Email emulated with Mailpit | `test_mailpit.py::test_registration_email_arrives_in_mailpit_with_ticket_code`; E2E `registration.spec.ts` | 3, 8 |
 | P5 | Works with two browser tabs at once | `two_tabs.spec.ts::checkin_in_tab_b_updates_organizer_counter_in_tab_a_live`, `two_tabs.spec.ts::two_participants_race_for_last_seat_one_confirmed_one_waitlisted` | 8 |
 | P6 | Proof it works (automated tests) | This whole plan. `make test` and `make e2e` | all |

@@ -17,8 +17,8 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
 - **DoD:** the docs are committed, and every requirement maps to a planned test in TEST_PLAN.
 
 ## Phase 1: Scaffold and infra
-- **Scope:** compose stack boots with one command. FastAPI app with `/api/health`. Alembic baseline migration with **all three tables, enums, constraints and indexes** from ARCHITECTURE §5. Frontend skeleton served by nginx with the `/api` proxy. Worker container stub (loop that logs heartbeat). Injectable `Clock`. Test DB fixture (real Postgres, truncate between tests). Makefile.
-- **Files:** `docker-compose.yml`, `.env.example`, `Makefile`, `infra/db/init.sql` (creates the `eventreg_test` DB), `backend/{Dockerfile,pyproject.toml,requirements.txt,requirements-dev.txt,alembic.ini}`, `backend/alembic/versions/0001_initial.py`, `backend/app/{__init__,main,config,db,models,clock,worker}.py`, `backend/tests/{conftest.py,test_health.py,test_schema.py}`, `frontend/{Dockerfile,nginx.conf,package.json,vite.config.ts,tsconfig.json,index.html}`, `frontend/src/{main.tsx,App.tsx,App.test.tsx}`, `README.md` (stub with run instructions).
+- **Scope:** compose stack boots with one command. FastAPI app with `/api/health`. Alembic baseline migration with **all three tables, enums, constraints and indexes** from ARCHITECTURE §5. Frontend skeleton served by nginx with the `/api` proxy. Injectable `Clock`. Test DB fixture (real Postgres, truncate between tests). Makefile. Compose smoke test. *(Changed during phase 1: the worker stub moved to phase 3 (D-023), and the test-DB init script is `infra/db/init-test-db.sh` (D-029).)*
+- **Files:** `docker-compose.yml`, `.env.example`, `Makefile`, `infra/db/init-test-db.sh` (creates the `eventreg_test` DB), `scripts/smoke_compose.sh`, `backend/{Dockerfile,pyproject.toml,requirements.txt,requirements-dev.txt,alembic.ini}`, `backend/alembic/versions/0001_initial.py`, `backend/app/{__init__,main,config,db,models,clock}.py`, `backend/app/api/health.py`, `backend/tests/{conftest.py,test_health.py,test_schema.py}`, `frontend/{Dockerfile,nginx.conf,package.json,vite.config.ts,tsconfig.json,index.html}`, `frontend/src/{main.tsx,App.tsx,App.test.tsx,api.ts}`, `README.md` (stub with run instructions).
 - **Tests:**
   - `test_health.py::test_health_ok`
   - `test_health.py::test_health_reports_db_error_as_503`
@@ -28,7 +28,11 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
   - `test_schema.py::test_seats_taken_check_rejects_overbooking`
   - `test_schema.py::test_checked_in_requires_timestamp`
   - `test_schema.py::test_outbox_dedupe_key_unique`
-  - `App.test.tsx::renders_app_shell`
+  - `test_schema.py::test_models_match_migrations` (added: ORM vs migration drift)
+  - `test_schema.py::test_waitlisted_requires_queue_seq`, `::test_email_normalized_must_be_lowercase`, `::test_ticket_code_format_enforced` (added)
+  - `test_health.py::test_health_db_timeout_returns_503_within_budget` (added)
+  - `App.test.tsx::renders_app_shell`, `::calls_api_health_and_shows_ok`, `::shows_db_down_on_503`, `::shows_unreachable_on_network_error`
+  - `scripts/smoke_compose.sh` (`make test-smoke`): `make up` from scratch in an isolated project, 7 probes
 - **DoD:** `docker compose up --build` from a clean clone brings all 6 services to healthy, and `http://localhost:8080` shows the shell. `curl localhost:8080/api/health` returns ok. Mailpit UI is on `:8025`. `make test` passes.
 
 ## Phase 2: Registration core, waitlist and locking
@@ -63,7 +67,7 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
 - **DoD:** all of the above pass against real Postgres. Concurrency tests use separate connections (not a shared session) and have passed 5 consecutive runs (`pytest --count=5` via pytest-repeat) without a flake.
 
 ## Phase 3: Email outbox dispatcher and tickets
-- **Scope:** worker dispatcher loop (claim with SKIP LOCKED, lease, retry/backoff, max attempts → failed), SMTP via aiosmtplib to Mailpit, templates for all email kinds, Message-ID from dedupe key, reminder send-time guard hook. Participant view shows the ticket code.
+- **Scope:** `worker` compose service (moved here from phase 1, D-023). Worker dispatcher loop (claim with SKIP LOCKED, lease, retry/backoff, max attempts → failed), SMTP via aiosmtplib to Mailpit, templates for all email kinds, Message-ID from dedupe key, reminder send-time guard hook. Participant view shows the ticket code.
 - **Files:** `backend/app/outbox/{dispatcher.py,templates.py,smtp.py}`, `backend/app/worker.py` (real loop), tests.
 - **Tests:**
   - `test_outbox.py::test_ticket_email_enqueued_in_same_tx_as_registration` (rollback leaves no outbox row)
