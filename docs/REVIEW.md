@@ -10,8 +10,8 @@ Each finding has a proposed test that reproduces it. **Status** is updated as fi
 
 | ID | Sev | Title | Status |
 |---|---|---|---|
-| H1 | HIGH | One unsendable email wedges its whole outbox batch forever | **fixed** (test first) |
-| H2 | HIGH | Manage tokens (capability links) written to backend and nginx access logs | **fixed** (test first) |
+| H1 | HIGH | One unsendable email wedges its whole outbox batch forever | **fixed**: tests seen red first, then green |
+| H2 | HIGH | Manage tokens (capability links) written to backend and nginx access logs | open |
 | M1 | MEDIUM | CSRF on body-less organizer POSTs from same-site origins | open |
 | M2 | MEDIUM | Logout doesn't revoke the session; open organizer streams keep running | open |
 | M3 | MEDIUM | Dev secrets and insecure cookie are silent defaults even with `APP_ENV=production` | open |
@@ -44,6 +44,8 @@ What I looked for and did **not** find: overbooking or duplicate seats under any
 **Proposed tests:**
 - `test_review.py::test_review_h1_unsendable_email_fails_alone_and_others_are_delivered`: one outbox row with a CR/LF subject plus three normal registrations. The dispatcher runs, the clock moves past leases, and the three normal emails arrive in Mailpit exactly once, while the poison row is `failed` after 1 attempt with the reason recorded.
 - `test_review.py::test_review_h1_title_with_line_break_rejected`: create or patch an event with a CR/LF or other control character in the title gives 422.
+
+**Status: fixed.** `test_review_h1_*` were red before the fix (ValueError escaped `run_once`; the API accepted the titles). A mutation removing the per-row isolation makes `test_review_h1_unexpected_error_in_one_row_does_not_block_batch` fail again.
 
 **Fix:**
 1. Building or preparing a message is a *permanent* failure, so the row goes straight to `failed` with the reason.

@@ -215,13 +215,21 @@ class Dispatcher:
                 await self._complete(_SKIP, item, reason=prepared)
                 return False
             item = prepared
-        message = build_message(
-            mail_from=self.settings.mail_from,
-            to=item.to_email,
-            subject=item.subject,
-            body=item.body_text,
-            dedupe_key=item.dedupe_key,
-        )
+        try:
+            message = build_message(
+                mail_from=self.settings.mail_from,
+                to=item.to_email,
+                subject=item.subject,
+                body=item.body_text,
+                dedupe_key=item.dedupe_key,
+            )
+        except Exception as exc:
+            # Permanent: this row can never become an email (e.g. CR/LF in a header). Fail it
+            # now instead of retrying; it must never take other rows down with it (REVIEW H1).
+            reason = f"unsendable: {type(exc).__name__}: {exc}"[:500]
+            logger.error("outbox %s (%s) %s", item.id, item.kind, reason)
+            await self._complete(_GIVE_UP, item, error=reason)
+            return False
         try:
             await self.sender.send(message)
         except Exception as exc:  # SMTP / network / timeout: retry later
@@ -236,7 +244,12 @@ class Dispatcher:
         return await self.mark_sent(item)
 
     async def run_once(self, stop: asyncio.Event | None = None) -> int:
-        """Claim one batch and process it. Returns the number of rows claimed."""
+        """Claim one batch and process it. Returns the number of rows claimed.
+
+        Rows are isolated from each other: an unexpected error while handling one row is
+        logged and that row is retried after its lease, but the rest of the batch is still
+        processed (REVIEW H1). A row claimed more often than allowed without ever completing
+        (it keeps crashing the handler) is given up instead of looping forever."""
         claimed = await self.claim()
         for index, item in enumerate(claimed):
             if stop is not None and stop.is_set():
@@ -245,7 +258,17 @@ class Dispatcher:
                 break
             if index and self.settings.outbox_send_interval_seconds:
                 await asyncio.sleep(self.settings.outbox_send_interval_seconds)
-            await self.deliver(item)
+            if item.attempts > self.settings.outbox_max_attempts:
+                await self._complete(
+                    _GIVE_UP, item, error="gave up: claimed too often without completing"
+                )
+                continue
+            try:
+                await self.deliver(item)
+            except Exception:
+                logger.exception(
+                    "outbox %s (%s): unexpected error; retried after lease", item.id, item.kind
+                )
         return len(claimed)
 
     async def run_until_idle(self, max_batches: int = 1000) -> int:

@@ -16,7 +16,14 @@ from pydantic import (
 from app.models import EventStatus, RegistrationStatus
 from app.timefmt import iso_utc
 
-Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+# No control characters: the title goes into email Subject headers, where CR/LF is refused by
+# the email library (and would otherwise be header injection). docs/REVIEW.md H1.
+Title = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True, min_length=1, max_length=200, pattern=r"^[^\x00-\x1F\x7F]+$"
+    ),
+]
 Description = Annotated[str, StringConstraints(max_length=5000)]
 Capacity = Annotated[int, Field(ge=1, le=100_000)]
 

@@ -150,6 +150,7 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
 - **Scope:** a fresh-context reviewer (separate agent session, or `/code-review high`) audits concurrency, transactions, error handling, security (cookie flags, token leakage, CSRF, SQL injection, PII in public endpoints, logging of secrets) and docs-vs-code drift. Every finding is fixed with a regression test or explicitly rejected with a reason.
 - **Files:** `docs/REVIEW.md` (findings table: id, severity, status, test), plus fixes.
 - **Tests:** one new regression test per fixed bug, named `test_review_<id>_<desc>`. Full suite and E2E green.
+  - H1: `test_review.py::test_review_h1_unsendable_email_fails_alone_and_others_are_delivered`, `::test_review_h1_title_with_control_characters_rejected`, `::test_review_h1_unexpected_error_in_one_row_does_not_block_batch`
 - **DoD:** REVIEW.md has no open high or medium findings. Full suite and E2E were re-run and shown.
 
 ## Phase 10: Final docs
