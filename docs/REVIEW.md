@@ -11,7 +11,7 @@ Each finding has a proposed test that reproduces it. **Status** is updated as fi
 | ID | Sev | Title | Status |
 |---|---|---|---|
 | H1 | HIGH | One unsendable email wedges its whole outbox batch forever | **fixed**: tests seen red first, then green |
-| H2 | HIGH | Manage tokens (capability links) written to backend and nginx access logs | open |
+| H2 | HIGH | Manage tokens (capability links) written to backend and nginx access logs | **fixed**: tests seen red first, then green |
 | M1 | MEDIUM | CSRF on body-less organizer POSTs from same-site origins | open |
 | M2 | MEDIUM | Logout doesn't revoke the session; open organizer streams keep running | open |
 | M3 | MEDIUM | Dev secrets and insecure cookie are silent defaults even with `APP_ENV=production` | open |
@@ -63,6 +63,8 @@ What I looked for and did **not** find: overbooking or duplicate seats under any
 **Proposed tests:**
 - `test_review.py::test_review_h2_manage_token_not_in_backend_logs`: a real uvicorn process with its log captured. GET and POST-cancel a registration by token, then assert the token doesn't appear in the log while the redacted path does.
 - smoke probe: request `/r/<token>`, `/api/registrations/<token>` and a navigation with `Referer: …/r/<token>` through nginx, then assert the token isn't in `docker compose logs frontend`.
+
+**Status: fixed.** Both tests were red first (token in the uvicorn log; smoke found `GET /r/smokeTOKEN…` in nginx's log). Both are green now. `Referrer-Policy: no-referrer` is served on every response.
 
 **Fix:** a logging filter on `uvicorn.access` that redacts `/api/registrations/<token>` and `/r/<token>` (access logs stay useful). In nginx, a `log_format` that logs a redacted URI and no Referer, plus `Referrer-Policy: no-referrer` so tokens don't leak in `Referer` headers either.
 

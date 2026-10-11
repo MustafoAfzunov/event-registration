@@ -157,4 +157,17 @@ sleep 5
 [[ "$(count 'to:remind@example.com subject:Reminder')" == "2" ]] || fail "expected 1 reminder per date"
 ok "worker scheduler: exactly 1 reminder; reschedule -> 1 'New date' email + 1 reminder for the new date"
 
+# Manage tokens are credentials: they must never appear in nginx access logs (REVIEW H2),
+# neither from the URL nor from a Referer sent by the ticket page.
+probe_token="smokeTOKEN$(date +%s)abcdefghijklmnop"
+curl -s -o /dev/null "http://localhost:$FRONTEND_PORT/r/$probe_token"
+curl -s -o /dev/null "http://localhost:$FRONTEND_PORT/api/registrations/$probe_token"
+curl -s -o /dev/null -H "Referer: http://localhost:$FRONTEND_PORT/r/$probe_token" "http://localhost:$FRONTEND_PORT/"
+sleep 1
+if docker compose logs frontend backend 2>&1 | grep -q "$probe_token"; then
+  fail "manage token found in access logs: $(docker compose logs frontend backend 2>&1 | grep "$probe_token" | head -3)"
+fi
+docker compose logs frontend 2>&1 | grep -q '/r/\[redacted\]' || fail "nginx access log line for /r/... missing (should be redacted, not dropped)"
+ok "manage tokens never appear in nginx/backend access logs (redacted)"
+
 echo "SMOKE PASS: $passed checks"

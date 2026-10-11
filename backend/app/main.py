@@ -12,6 +12,7 @@ from app.config import Settings, get_settings
 from app.db import make_engine, make_sessionmaker
 from app.errors import install_error_handlers
 from app.live.broker import Broker
+from app.logredact import install as install_log_redaction
 
 
 class WorkerPidHeader:
@@ -34,6 +35,7 @@ class WorkerPidHeader:
 
 def create_app(settings: Settings | None = None, clock: Clock | None = None) -> FastAPI:
     settings = settings or get_settings()
+    install_log_redaction()  # tokens never reach the access log (REVIEW H2)
     # The engine is created eagerly (it connects lazily) so the app works even when the
     # ASGI lifespan is not run, e.g. under httpx.ASGITransport in tests.
     engine = make_engine(settings.database_url, settings.db_pool_size, settings.db_max_overflow)

@@ -5,7 +5,9 @@ import uuid
 from collections import Counter
 from collections.abc import Callable
 from datetime import timedelta
+from pathlib import Path
 
+import httpx
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
@@ -13,7 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.clock import FixedClock
 from app.emails.dispatcher import Dispatcher
-from tests.helpers import create_event, outbox, register
+from tests.conftest import ORGANIZER_PASSWORD
+from tests.helpers import create_event, outbox, register, token_for
+from tests.live_server import run_server, server_env
 from tests.mailpit import Mailpit
 
 MakeDispatcher = Callable[..., Dispatcher]
@@ -115,3 +119,31 @@ async def test_review_h1_unexpected_error_in_one_row_does_not_block_batch(
     assert delivered == Counter(["p1@example.com", "p2@example.com"])
     rows = {r["to_email"]: r for r in await outbox(engine, event_id)}
     assert rows["p0@example.com"]["status"] == "failed"  # bounded, not an endless loop
+
+
+# --------------------------------------------------------------------------------------- H2
+async def test_review_h2_manage_token_not_in_backend_logs(
+    client: AsyncClient,
+    admin: AsyncClient,
+    engine: AsyncEngine,
+    clock: FixedClock,
+    test_db_url: str,
+    tmp_path: Path,
+) -> None:
+    """The manage token is the participant's credential (view + cancel). Running the real
+    uvicorn command, using it must not write it to the logs; the access log line itself must
+    still be there (redacted), so operators keep their logs."""
+    event_id = await create_event(admin, clock, capacity=5)
+    await register(client, event_id, "logged@example.com")
+    token = await token_for(engine, event_id, "logged@example.com")
+
+    log = tmp_path / "uvicorn.log"
+    with run_server(server_env(test_db_url, ORGANIZER_PASSWORD), 1, log) as server:
+        async with httpx.AsyncClient(base_url=server.url) as http:
+            assert (await http.get(f"/api/registrations/{token}")).status_code == 200
+            assert (await http.post(f"/api/registrations/{token}/cancel")).status_code == 200
+            assert (await http.get(f"/api/registrations/{token}?x=1")).status_code == 200
+    text_logged = log.read_text()  # read after shutdown: everything flushed
+
+    assert token not in text_logged
+    assert "/api/registrations/[redacted]" in text_logged

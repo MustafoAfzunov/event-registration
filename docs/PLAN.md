@@ -151,6 +151,7 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
 - **Files:** `docs/REVIEW.md` (findings table: id, severity, status, test), plus fixes.
 - **Tests:** one new regression test per fixed bug, named `test_review_<id>_<desc>`. Full suite and E2E green.
   - H1: `test_review.py::test_review_h1_unsendable_email_fails_alone_and_others_are_delivered`, `::test_review_h1_title_with_control_characters_rejected`, `::test_review_h1_unexpected_error_in_one_row_does_not_block_batch`
+  - H2: `test_review.py::test_review_h2_manage_token_not_in_backend_logs` plus a smoke probe (nginx)
 - **DoD:** REVIEW.md has no open high or medium findings. Full suite and E2E were re-run and shown.
 
 ## Phase 10: Final docs
