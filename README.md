@@ -2,7 +2,7 @@
 
 People register for an event by email and get an emailed ticket with a code. When the event is full they join a waitlist, and when someone cancels, the first person waiting gets the seat and an email automatically. Organizers manage events, see live counters (registered, waitlisted, checked in), check tickets in at the door by typing the code, and can reschedule (everyone is emailed). Every confirmed participant gets exactly one reminder 24 hours before the event.
 
-**Stack:** FastAPI (Python 3.12) + PostgreSQL 16 backend, a separate email/scheduler worker, a React 19 + Vite frontend served by nginx, and Mailpit as the email inbox. Everything runs with one `docker compose` command.
+**Stack:** FastAPI (Python 3.12) + PostgreSQL 16 backend, a separate email/scheduler worker, a React 19 + Vite + Tailwind CSS 3 frontend (the "Kinetic Horizon" design from `docs/stitch_event_registration_app_screens/`) served by nginx, and Mailpit as the email inbox. Everything runs with one `docker compose` command.
 
 **Where to look next:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (design and concurrency mechanisms), [docs/API.md](docs/API.md) (API contract), [docs/TEST_PLAN.md](docs/TEST_PLAN.md) (requirement → test map), [docs/REVIEW.md](docs/REVIEW.md) (independent review and open findings), [DECISIONS.md](DECISIONS.md) (every decision with timestamp and reason), [DEVLOG.md](DEVLOG.md) and [docs/TIMELINE.md](docs/TIMELINE.md) (how it was built).
 
@@ -41,7 +41,7 @@ make help    # every target
 1. Log in at `/admin` and create an event with 1 seat. Its dashboard shows live counters.
 2. Open the event's public page (link on the dashboard) in a second tab and register two emails (use `example.com`-style addresses; special-use domains like `.test` are rejected). The first gets the seat, the second is waitlisted. The dashboard updates without reloading.
 3. In Mailpit, open the first person's ticket email and follow its link to the ticket page. Cancel: the waitlisted person is promoted and gets an email with their ticket.
-4. On the dashboard, open the check-in screen and type the promoted person's ticket code. You get a green "Welcome!" the first time and a red "Already used" the second, and the dashboard counter changes live.
+4. On the dashboard, open **Check-In Terminal** (top navigation) and type the promoted person's ticket code. You get a green "Welcome!" the first time and a red "Already used" the second, and the dashboard counter changes live.
 
 For live updates from a terminal: `curl -N localhost:8080/api/events/<event-id>/stream`, then register from another terminal.
 
@@ -99,11 +99,10 @@ It runs **everything**, keeps going after a failure, and ends with a requirement
 
 Each TEST_PLAN row gets PASS, FAIL, MISSING (it names a test that doesn't exist or didn't run) or MANUAL. Any FAIL or MISSING fails the proof.
 
-**Final run** (from a clean clone, see [DEVLOG](DEVLOG.md) phase 10):
+**Latest run** (phase 7b, in the working copy: all seven steps of `make proof` passed, then the requirement table was regenerated; the first table run flagged one wrong test reference of mine as MISSING, which was fixed. The earlier phase 10 run from a clean `git clone` is recorded in [DEVLOG](DEVLOG.md); 245 test cases then, 293 now after the new UI tests):
 
 ```
-$ make proof        # 243 s on the final run, warm Docker cache; first run longer (image pulls)
-...
+
 Pipeline steps
   lint               PASS
   backend            PASS
@@ -112,7 +111,7 @@ Pipeline steps
   smoke              PASS
   e2e                PASS
   stress             PASS
-  test cases         245 passed, 0 failed, 0 skipped (backend+frontend+e2e)
+  test cases         293 passed, 0 failed, 0 skipped (backend+frontend+e2e)
 
 Platform requirements
   ID                                 RESULT   detail
@@ -152,9 +151,10 @@ Edge cases (ARCHITECTURE §6) → tests
   Email: exactly-once enqueue, at... PASS     8 checks
   Review H1: one unsendable email... PASS     3 checks
   Review H2: manage tokens never ... PASS     2 checks
+  UI design (phase 7b): Stitch de... PASS     11 checks
   Security                           PASS     3 checks
 
-Requirements: 1 MANUAL, 45 PASS
+Requirements: 1 MANUAL, 46 PASS
 PROOF PASS
 ```
 
@@ -178,7 +178,7 @@ Other entry points: `make test` (backend + frontend), `make lint`, `make test-sm
 
 **Limits that are part of the design:**
 - **Exactly-once email *delivery* over SMTP isn't possible.** We guarantee exactly-once queueing and at-least-once delivery ([D-043](DECISIONS.md)).
-- **One event's seat changes are serialized by its row lock.** Measured over the last four stress runs: 106–118 registrations/s for a single event, with p95 2.1–2.2s with 250 requests in flight (final run: 106.3/s, p95 2238ms). Different events don't block each other.
+- **One event's seat changes are serialized by its row lock.** Measured: 106–118 registrations/s for a single event on four earlier stress runs (p95 2.1–2.2s with 250 requests in flight), but only 48/s (p95 5.0s) on the phase 7b run, which shared the machine with other containers; the cause wasn't investigated, so treat throughput as machine-dependent. All 17 invariants held in every run. Different events don't block each other.
 - **The UI last-seat race** is two near-simultaneous clicks. Proven simultaneity is in the gated backend tests.
 - **The "24h before" timing** is tested with a simulated clock and an event 23h ahead, not by waiting a day.
 
@@ -217,6 +217,10 @@ The developer set the phase plan and requirements, and answered the decisions th
 2. Re-validate ticket and promotion emails at send time (L2). Cap and observe SSE connections (L3).
 3. CI: run `make proof` on every push. Add Firefox/WebKit to the E2E matrix.
 4. Product: rate limiting on login and registration, a door-staff role, per-event time zone and localized email times.
+
+## Design
+
+The UI is a copy of the Stitch export in `docs/stitch_event_registration_app_screens/` (screens plus `kinetic_horizon/DESIGN.md`): the exported Tailwind theme is used unchanged (`frontend/tailwind.config.js`), so the exported classes work as is. Only what our backend supports was kept: elements such as speakers, schedule, FAQ, prices and tiers, revenue, map, QR/barcode, camera feed, wallets, search, notifications and avatars were removed, and all content comes from the API and live updates. Fonts and icons are self-hosted, so the app makes no runtime calls to Google or a CDN. Deliberate deviations from the export: a compact scrolling nav row on phones (the export hides its nav below `lg` with no replacement), and scrollbars are not hidden (the export hides them globally).
 
 ## Repository map
 

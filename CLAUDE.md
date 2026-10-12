@@ -8,7 +8,7 @@ These are the project rules for every session. Read `docs/ARCHITECTURE.md`, `doc
 - **Worker:** `python -m app.worker` (compose service `worker`) runs the outbox dispatcher (phase 3) and, from phase 6, the reminder scheduler. There's no Celery and no Redis. Email delivery is **at-least-once** by user decision (D-043). Never describe it as exactly-once delivery.
 - **Live updates:** SSE + Postgres `LISTEN/NOTIFY`.
 - **Email:** transactional outbox, then SMTP to Mailpit.
-- **Frontend:** React 19 + Vite 8 + TypeScript 6.0, React Router, plain fetch/EventSource, served by nginx (which proxies `/api`).
+- **Frontend:** React 19 + Vite 8 + TypeScript 6.0, React Router, plain fetch/EventSource, Tailwind CSS 3 with the Stitch design tokens (`frontend/tailwind.config.js`, copied verbatim from `docs/stitch_event_registration_app_screens/`), served by nginx (which proxies `/api`).
 - **Tests:** pytest + pytest-asyncio + httpx (real Postgres, never SQLite or mocks for DB behaviour), Vitest, Playwright.
 
 ## Commands (available from the phase noted)
@@ -57,6 +57,7 @@ If a command here goes stale, fix this file in the same commit.
 - **Errors:** raise `DomainError(code, message, http_status, details)`, which a single exception handler turns into the API error envelope.
 - **Tooling runs in containers.** Don't depend on host Python/Node versions. Regenerate `frontend/package-lock.json` inside `node:22-alpine` (host npm 10.8 crashes on it).
 - **Migrations:** one Alembic revision per schema change, reviewed by hand. Constraints and partial indexes are written explicitly. Never edit a migration that's already committed.
+- **UI content rule (phase 7b):** every piece of content shown comes from the API or SSE. Never add placeholder names, numbers, dates, images or features from the design mockups; if the backend can't supply something, the element doesn't exist. Icons come from `components/Icon` (decorative, `aria-hidden`).
 - **TypeScript:** `strict: true`. A single `api.ts` client returns typed results, and `errors.ts` maps API `code` to messages. Components stay small. No global state library.
 - **Tests:** names describe behaviour (`test_<what>_<expected>`). Name new tests in `docs/TEST_PLAN.md` when they cover a requirement.
 - **Secrets:** read only from env. `.env.example` holds dev-only values. Never log tokens, ticket codes or passwords.

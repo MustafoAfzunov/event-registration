@@ -14,7 +14,7 @@ test("register_receive_ticket_email_and_view_ticket", async ({ page }) => {
   const text = await emailText(mail!);
   await page.goto(managePath(text));
   await expect(page.getByLabel("Ticket code")).toHaveText(ticketCode(text));
-  await expect(page.getByText(`Registration for ${email}`)).toBeVisible();
+  await expect(page.getByLabel("Attendee")).toHaveText(email);
 });
 
 test("duplicate_registration_no_second_seat_no_second_email", async ({ browser }) => {

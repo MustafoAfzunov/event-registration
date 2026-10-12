@@ -390,3 +390,48 @@ Append-only. One entry per phase (or significant session), with a timestamp from
 **Not done / known gaps:** unchanged from phase 9. M1–M5 and L1–L7 are open and listed in README and REVIEW.md, with L6 now checked by hand. P7 (honest README) stays a manual judgement, made as carefully as the commands above allow.
 
 **Next:** none planned (phase 10 is the last). Suggested follow-ups are in README "Next steps".
+
+---
+
+## 2026-10-12T20:12:23+06:00 · Phase 7b: Apply the Stitch design
+
+**Request:** rebuild the four exported Stitch screens (`docs/stitch_event_registration_app_screens/`: public event page, ticket page, organizer dashboard, check-in terminal, plus the "Kinetic Horizon" design system) as a faithful visual copy, with no dummy data and no faked features. The mapping and the list of removed elements were shown first, and implementation started after the user's "OK" (judgment calls and their defaults are in D-094..D-098).
+
+**Done (presentation layer only; routing, `api.ts`, `useEventStream.ts`, `errors.ts` and the backend are unchanged)**
+- **Foundation:** Tailwind 3.4 + PostCSS with the export's theme copied verbatim (generated from the export, not retyped); self-hosted Inter, Plus Jakarta Sans and Material Symbols (FILL axis) instead of the export's CDN script and Google links.
+- **Screens:**
+  - Event page: hero, live availability box with a progress bar, sticky register card, waitlist box, outcome panels.
+  - Ticket page: status banner, ticket card with tear-line stub holding the real code, countdown, manage/cancel card.
+  - Dashboard: 4 live metric cards, participants card (search by email or ticket code, filter pills with live counts, pagination), Reschedule / Edit modal, toast.
+  - Check-in terminal: live quota bar, scan console, result card (success / error / warning variants), attendance card, recent check-ins table.
+  - Not in the export, built from the same components: public events list, organizer login, organizer events list with a create dialog.
+- **Components:** `Icon`, `Modal` (Escape, focus trap, focus return), `Toast`, `Pagination`, `Pill`, alerts, `LiveBadge`.
+- **Removed, not faked:** everything without backend support (list in D-094), including all hardcoded names, numbers, dates, prices and images from the mockups.
+
+**Tests**
+- **Component tests: 86 passed** (was 38). All existing test names kept (TEST_PLAN is machine-checked); selectors updated where the DOM changed (modal flows, tab labels with counts, `data-result`). New tests cover: availability tiers, countdown, search, paging, modal focus, check-in variants, recent check-ins, nav rules, and `format.ts` helpers.
+- **Browser E2E: 9 passed** (updated for the modal flow and the ticket page); it ran twice (standalone and inside the proof).
+- **`make proof`:** all seven steps PASS: lint, backend (198), frontend (86), concurrency loop, smoke, e2e (9), stress (17/17). **293/293 test cases; requirements 46 PASS + 1 MANUAL (P7).**
+- The first report run flagged my own new TEST_PLAN row as MISSING (I had cited a `describe` block instead of a test name). Fixed, and the negative case was re-verified.
+
+**Verified in a real browser** (built-in browser against the rebuilt dev stack, real data, desktop width and 375px phone width): public event page (high-demand state), ticket page (confirmed and checked-in states), login redirect and return, dashboard with the real participants, the reschedule modal with real counts, a real check-in scan with the success card and live quota, the events lists. Also: no mockup content in the source (grep), and no Google/CDN/mockup-image reference in the deployed bundle.
+
+**Found only by looking at the real screens (D-099)**
+- The ticket code wrapped to two lines in the stub.
+- At 375px the participants table crushed the email column to a few characters instead of scrolling.
+- Status pills wrapped, and the check-in placeholder collided with the "Esc to clear" hint.
+All fixed. The component tests cannot catch layout bugs (jsdom has no layout engine); there is **no automated visual-regression test**, so layout stays a manual check.
+
+**Surprises**
+- Docker Hub became unreachable over IPv6 mid-session (`make up` failed resolving a base image). The frontend was rebuilt from cache and redeployed with `docker compose up -d --no-build frontend`; the network recovered later and the full proof ran normally.
+- The stress run in the proof measured 48 req/s (earlier runs: 106–118). Cause not investigated (the machine was shared with other containers); invariants held; the README now says so.
+- The dev database still holds my earlier test events (including one whose title contains a line break, created before the review fix).
+
+**Not done / known gaps**
+- **Fidelity is "faithful where the backend supports it", not pixel-identical:** content-bound parts of the screens (speakers, schedule, map, tiers, revenue, QR, camera) are intentionally absent, the hero has only a status chip and the title, and the radius scale follows the exported config rather than `DESIGN.md`.
+- No dark mode (the export configures `darkMode: "class"` but defines no dark styles).
+- The icon font is about 1.1 MB (cached after first load).
+- The modal's focus trap is hand-written and has no screen-reader testing; no formal accessibility audit.
+- Not measured: Lighthouse performance, Firefox/Safari rendering, mobile browsers other than the emulated viewport.
+
+**Next:** none planned; phase 10 docs were updated for the design (README "Design" section, CLAUDE.md UI content rule).

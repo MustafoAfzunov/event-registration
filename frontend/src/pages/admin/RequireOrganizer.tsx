@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
 import { api } from "../../api";
+import { adminContainer } from "../../components/styles";
 import { ErrorBox, Loading } from "../../components/ui";
 import { errorCode, messageFor } from "../../errors";
 
@@ -16,11 +17,11 @@ export function RequireOrganizer() {
     );
   }, [location.pathname]);
 
-  if (state === "checking") return <Loading what="Checking login" />;
+  if (state === "checking") return <div className={adminContainer}><Loading what="Checking login" /></div>;
   if (state === "login") {
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/admin/login?next=${next}`} replace />;
   }
-  if (state !== "ok") return <ErrorBox>{messageFor(state)}</ErrorBox>;
+  if (state !== "ok") return <div className={adminContainer}><ErrorBox>{messageFor(state)}</ErrorBox></div>;
   return <Outlet />;
 }

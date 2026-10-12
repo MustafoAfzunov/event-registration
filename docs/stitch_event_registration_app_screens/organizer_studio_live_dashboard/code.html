@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-secondary":"#ffffff","primary":"#3525cd","on-secondary-fixed":"#002113","surface-variant":"#dae2fd","inverse-surface":"#283044","surface":"#faf8ff","on-tertiary-fixed":"#2a1700","on-secondary-fixed-variant":"#005236","tertiary-container":"#885500","on-tertiary":"#ffffff","background":"#faf8ff","surface-container-low":"#f2f3ff","surface-container-lowest":"#ffffff","on-surface":"#131b2e","surface-container":"#eaedff","on-error-container":"#93000a","on-background":"#131b2e","tertiary":"#684000","on-primary-container":"#dad7ff","error":"#ba1a1a","on-tertiary-fixed-variant":"#653e00","secondary-container":"#6cf8bb","surface-container-highest":"#dae2fd","on-secondary-container":"#00714d","primary-fixed":"#e2dfff","surface-tint":"#4d44e3","on-primary":"#ffffff","error-container":"#ffdad6","on-tertiary-container":"#ffd4a4","on-primary-fixed-variant":"#3323cc","on-surface-variant":"#464555","outline-variant":"#c7c4d8","primary-fixed-dim":"#c3c0ff","inverse-on-surface":"#eef0ff","secondary-fixed":"#6ffbbe","surface-container-high":"#e2e7ff","secondary":"#006c49","surface-bright":"#faf8ff","surface-dim":"#d2d9f4","on-error":"#ffffff","inverse-primary":"#c3c0ff","tertiary-fixed-dim":"#ffb95f","outline":"#777587","on-primary-fixed":"#0f0069","tertiary-fixed":"#ffddb8","primary-container":"#4f46e5","secondary-fixed-dim":"#4edea3"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{"space-xs":"0.25rem","space-sm":"0.5rem",gutter:"1.5rem","space-xl":"2.5rem","space-md":"1rem","space-lg":"1.5rem","margin-mobile":"1rem","gutter-mobile":"1rem",margin:"2rem"},fontFamily:{"body-lg":["Inter"],"display-hero":["Plus Jakarta Sans"],"body-sm":["Inter"],"headline-sm":["Plus Jakarta Sans"],"label-sm":["Inter"],"headline-md":["Plus Jakarta Sans"],"label-md":["Inter"],"display-hero-mobile":["Plus Jakarta Sans"],"body-md":["Inter"],"headline-lg-mobile":["Plus Jakarta Sans"],"label-lg":["Inter"],"headline-lg":["Plus Jakarta Sans"],"code-tabular":["Inter"]},fontSize:{"body-lg":["16px",{lineHeight:"26px",letterSpacing:"-0.005em",fontWeight:"400"}],"display-hero":["48px",{lineHeight:"56px",letterSpacing:"-0.03em",fontWeight:"800"}],"body-sm":["12px",{lineHeight:"18px",letterSpacing:"0em",fontWeight:"400"}],"headline-sm":["18px",{lineHeight:"26px",letterSpacing:"-0.01em",fontWeight:"600"}],"label-sm":["11px",{lineHeight:"14px",letterSpacing:"0.04em",fontWeight:"700"}],"headline-md":["24px",{lineHeight:"32px",letterSpacing:"-0.015em",fontWeight:"600"}],"label-md":["12px",{lineHeight:"16px",letterSpacing:"0.02em",fontWeight:"600"}],"display-hero-mobile":["32px",{lineHeight:"40px",letterSpacing:"-0.025em",fontWeight:"800"}],"body-md":["14px",{lineHeight:"22px",letterSpacing:"0em",fontWeight:"400"}],"headline-lg-mobile":["24px",{lineHeight:"32px",letterSpacing:"-0.02em",fontWeight:"700"}],"label-lg":["14px",{lineHeight:"20px",letterSpacing:"0em",fontWeight:"600"}],"headline-lg":["32px",{lineHeight:"40px",letterSpacing:"-0.02em",fontWeight:"700"}],"code-tabular":["13px",{lineHeight:"18px",letterSpacing:"0.01em",fontWeight:"500"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface"><header class="fixed top-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-outline-variant"><div class="h-16 w-full px-margin flex items-center justify-between gap-gutter"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm"><img alt="EventPulse Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1U65LRtA40CC7cqBbDkqLOc57M3lKuvBdB1pWhJ7VioI6rmiGBqJ280NouPRftMfrokUd0JCpHuAc1dmi1ebsE-0ntlwYwkH0ohJs6TgAZV409Ts_yJJL0lLrgSaQh7zLwmKjPMs9Zw7-5VlPmfKRaXowNeErgrXMzxl32F_xEWsZUafLoiI4QD4pCif-7VVHQB28BuEc4Xk3dNWZHWaCgYGf5-CCqE6gKQOje6uNcE79GBoOdjgKxXCld6"/><span class="font-headline-sm text-headline-sm text-on-surface">EventPulse</span></div><nav class="hidden lg:flex items-center gap-space-lg" data-active-classes="text-primary font-bold"><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors" data-path="explore-events" href="#">Explore Events</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors" data-path="my-tickets" href="#">My Tickets</a><a aria-current="page" class="transition-colors text-primary font-bold" data-path="organizer-studio" href="#">Organizer Studio</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors" data-path="check-in-terminal" href="#">Check-In Terminal</a></nav></div><div class="flex items-center gap-space-md"><div class="relative hidden sm:block w-72"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span><input class="w-full pl-9 pr-space-md py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant text-on-surface font-body-sm text-body-sm focus:outline-none focus:border-primary" placeholder="Search events, artists, venues..." type="text"/></div><div class="relative flex items-center"><button aria-label="Notifications" class="p-space-xs rounded-full text-on-surface-variant hover:text-on-surface transition-colors relative flex items-center justify-center" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-error ring-2 ring-surface"></span></button></div><div class="flex items-center gap-space-xs cursor-pointer"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBC7jHZXnduzYamfRf1Wj9La1uJqd6hv3_16VRueVnH1pOi-d9gDylFdcI1wWc8ESk7EjQRHxyGxcHFZs921IaBqfhzz84IC_uh-dNWyL9e5j5kp8mMAFlAnvBlJfdDx_qwib6KKCzNV9AT6ChWdu3fKHSmCDjLqWk6YsjOLWMTizvdrCqnFLy9foWj7emzqBOxeerT0sEj11Y80QZ1taPfzjWdbb1okEYJjbxNoq-h4kjS4vyBwRsyg"/><span class="material-symbols-outlined text-outline-variant text-[20px]">keyboard_arrow_down</span></div></div></div></header><main class="w-full pt-16 bg-surface min-h-screen"><div class="flex flex-col w-full">
+<!-- Dynamic Operational Canvas -->
+<div class="w-full px-margin py-space-lg flex flex-col gap-space-xl max-w-[1440px] mx-auto">
+<!-- Top Action Bar & Event Header Context -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-sm flex-wrap">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/10 text-secondary font-label-sm text-label-sm tracking-wide">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+            LIVE EVENT • REGISTRATION ACTIVE
+          </span>
+<span class="font-code-tabular text-code-tabular text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">
+            EVT-CS-2025-SF
+          </span>
+</div>
+<div class="flex items-baseline gap-space-md">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">CloudScale Summit 2025</h1>
+<span class="font-body-sm text-body-sm text-on-surface-variant hidden sm:inline">Moscone Center West • San Francisco, CA</span>
+</div>
+</div>
+<!-- Quick Action Controls (Strictly No Borders, High Affordance) -->
+<div class="flex items-center gap-space-sm flex-wrap">
+<button class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface-container-high text-on-surface font-label-lg text-label-lg hover:bg-surface-container-highest transition-all shadow-sm active:scale-95" id="open-reschedule-btn" type="button">
+<span class="material-symbols-outlined text-[18px]">calendar_month</span>
+          Reschedule / Edit Event
+        </button>
+<button class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface-container-high text-on-surface font-label-lg text-label-lg hover:bg-surface-container-highest transition-all shadow-sm active:scale-95" id="export-csv-btn" type="button">
+<span class="material-symbols-outlined text-[18px]">download</span>
+          Export CSV Data
+        </button>
+<button class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary-container transition-all shadow-md active:scale-95" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+          + Create New Event
+        </button>
+</div>
+</div>
+<!-- Live Operational Pulse: Metric Stat Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Metric 1: Capacity -->
+<div class="flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Total Registered</span>
+<div class="w-8 h-8 rounded-lg bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">confirmation_number</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">186</span>
+<span class="font-body-md text-body-md text-on-surface-variant font-medium">/ 200 cap</span>
+</div>
+<div class="w-full flex flex-col gap-1.5 mt-2">
+<div class="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+<div class="bg-primary h-2 rounded-full transition-all duration-500" style="width: 93%;"></div>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant">
+<span>93% occupancy</span>
+<span class="font-code-tabular text-error font-medium">14 seats remaining</span>
+</div>
+</div>
+</div>
+<!-- Metric 2: Checked In -->
+<div class="flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Turnout &amp; Check-In</span>
+<div class="w-8 h-8 rounded-lg bg-secondary-fixed flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]">how_to_reg</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">42</span>
+<span class="font-body-md text-body-md text-secondary flex items-center gap-1 font-medium">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+            22.6% In Venue
+          </span>
+</div>
+<div class="w-full flex items-center gap-2 mt-2">
+<div class="flex -space-x-2 overflow-hidden py-1">
+<div class="w-7 h-7 rounded-full bg-surface-container-high flex items-center justify-center text-label-sm font-label-sm text-primary font-bold">JD</div>
+<div class="w-7 h-7 rounded-full bg-secondary-container flex items-center justify-center text-label-sm font-label-sm text-on-secondary-container font-bold">AL</div>
+<div class="w-7 h-7 rounded-full bg-surface-variant flex items-center justify-center text-label-sm font-label-sm text-on-surface-variant font-bold">MK</div>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Last entry 3m ago</span>
+</div>
+</div>
+<!-- Metric 3: Waitlist -->
+<div class="flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Waitlist Queue</span>
+<div class="w-8 h-8 rounded-lg bg-tertiary-fixed flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[20px]">hourglass_top</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">38</span>
+<span class="font-body-sm text-body-sm text-tertiary font-medium">Auto-dispatch enabled</span>
+</div>
+<div class="flex items-center justify-between mt-2 pt-1">
+<span class="inline-flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-tertiary">speed</span> Avg claim: 14 mins
+          </span>
+<button class="text-label-sm font-label-sm text-primary hover:underline font-semibold" type="button">Boost Caps</button>
+</div>
+</div>
+<!-- Metric 4: Net Revenue -->
+<div class="flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Gross Ticket Volume</span>
+<div class="w-8 h-8 rounded-lg bg-primary-fixed-dim flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">$28,450</span>
+<span class="inline-flex items-center text-label-sm font-label-sm px-1.5 py-0.5 rounded bg-secondary/15 text-secondary font-bold">
+            +12.4% vs Target
+          </span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant mt-2">
+<span>Stripe Payouts active</span>
+<span class="font-code-tabular text-code-tabular text-on-surface font-semibold">$3,200 pending</span>
+</div>
+</div>
+</div>
+<!-- Editorial Event Highlight Banner: Ambient Visual Breather -->
+<div class="relative w-full rounded-2xl overflow-hidden bg-inverse-surface text-inverse-on-surface p-space-xl flex flex-col md:flex-row items-center justify-between gap-space-lg shadow-xl">
+<div class="flex flex-col gap-space-xs max-w-xl z-10">
+<span class="text-secondary-fixed font-label-sm text-label-sm uppercase tracking-widest font-bold">Live Stream Bridge &amp; Stage Check-In</span>
+<h2 class="font-headline-md text-headline-md font-bold tracking-tight">Mainstage Keynote &amp; Workshop Streams Synchronized</h2>
+<p class="font-body-md text-body-md text-surface-dim">Kiosk mode is broadcasting to 3 on-prem terminal iPads. RFID badging printer is operating at 99.8% uptime.</p>
+<div class="flex items-center gap-space-md mt-space-sm">
+<span class="flex items-center gap-1.5 font-label-sm text-label-sm text-inverse-on-surface">
+<span class="material-symbols-outlined text-secondary-fixed text-[18px]">verified</span> NFC Handshake OK
+          </span>
+<span class="flex items-center gap-1.5 font-label-sm text-label-sm text-inverse-on-surface">
+<span class="material-symbols-outlined text-secondary-fixed text-[18px]">wifi_tethering</span> Wi-Fi Mesh: Moscone-Private
+          </span>
+</div>
+</div>
+<div class="w-full md:w-80 h-32 md:h-36 rounded-xl overflow-hidden relative shadow-inner">
+<div class="bg-cover bg-center w-full h-full transform hover:scale-105 transition-transform duration-700" data-alt="High-tech enterprise developer conference hall filled with attendees bathed in deep indigo and emerald stage lighting, modern conference presentation atmosphere with crisp visual displays" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDmySrberdn2uwsgakSc_KzPUmxdBuhty6SA0EgC496FlgUSvNoU1ijivNrejl7RWvlYpeii2gHUmfYwKYmYBLX4xRyTUtS0U0oitPErVAtVTydi4hBYriyvJP4MRPjud6aT7SceNgpAEzx_x8P4gZNgijjr4WWxHF9Nb_hdPz8BAZBFMnJ7XXqZtJxa-Sj5TwVPD3_OsL9rc4HkFNbtFrBeiRohmVJZe-jsUOfAl2s4_1BjFg_wOuJ4Q')"></div>
+<div class="absolute inset-0 bg-primary/20 mix-blend-overlay"></div>
+</div>
+</div>
+<!-- Main Controls & Participant Management Table Section -->
+<div class="w-full bg-surface-container-lowest rounded-2xl shadow-sm flex flex-col overflow-hidden">
+<!-- Toolbar & Dynamic Filtering Tabs -->
+<div class="p-space-lg bg-surface-container-low flex flex-col md:flex-row gap-space-md md:items-center justify-between">
+<!-- Search Field -->
+<div class="relative flex-1 max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2.5 rounded-lg bg-surface text-on-surface font-body-sm text-body-sm placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest transition-colors shadow-sm" id="attendee-search" placeholder="Search by name, ticket code (e.g. TKT-9012), or email..." type="text"/>
+</div>
+<!-- Filter Segment Pills -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0" id="filter-container">
+<button class="filter-pill px-3.5 py-1.5 rounded-full font-label-sm text-label-sm font-semibold transition-all bg-primary text-on-primary shadow-sm" data-filter="all" type="button">
+            All (186)
+          </button>
+<button class="filter-pill px-3.5 py-1.5 rounded-full font-label-sm text-label-sm font-semibold transition-all bg-surface-container text-on-surface-variant hover:bg-surface-container-high" data-filter="checked-in" type="button">
+            Checked In (42)
+          </button>
+<button class="filter-pill px-3.5 py-1.5 rounded-full font-label-sm text-label-sm font-semibold transition-all bg-surface-container text-on-surface-variant hover:bg-surface-container-high" data-filter="unchecked" type="button">
+            Unchecked (144)
+          </button>
+<button class="filter-pill px-3.5 py-1.5 rounded-full font-label-sm text-label-sm font-semibold transition-all bg-surface-container text-on-surface-variant hover:bg-surface-container-high" data-filter="waitlist" type="button">
+            Waitlist (38)
+          </button>
+</div>
+</div>
+<!-- Data Table Frame -->
+<div class="w-full overflow-x-auto">
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Sarah Lin</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">sarah.lin@cloudgrid.io</span>
+</div><div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Elena Vance</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">elena@vance-security.org</span>
+</div><table class="w-full text-left border-collapse" id="attendees-table">
+<thead>
+<tr class="bg-surface-container-low/60 text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+<th class="py-3.5 px-space-lg font-semibold">Attendee</th>
+<th class="py-3.5 px-space-md font-semibold">Ticket ID</th>
+<th class="py-3.5 px-space-md font-semibold">Tier</th>
+<th class="py-3.5 px-space-md font-semibold">Registration Date</th>
+<th class="py-3.5 px-space-md font-semibold">Status</th>
+<th class="py-3.5 px-space-lg text-right font-semibold">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container text-body-md font-body-md text-on-surface" id="table-rows">
+<!-- Row 1: Checked In -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group" data-status="checked-in">
+<td class="py-4 px-space-lg flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-headline-sm text-headline-sm font-bold flex-shrink-0">
+                  SL
+                </div></td>
+<td class="py-4 px-space-md">
+<span class="font-code-tabular text-code-tabular px-2 py-1 rounded bg-surface-container text-on-surface">TKT-8841-VIP</span>
+</td>
+<td class="py-4 px-space-md">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm font-semibold">VIP Pass</span>
+</td>
+<td class="py-4 px-space-md text-body-sm font-body-sm text-on-surface-variant">
+                Oct 12, 2024 • 09:24 AM
+              </td>
+<td class="py-4 px-space-md status-cell">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/15 text-secondary font-label-sm text-label-sm font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                  Checked-In
+                </span>
+</td>
+<td class="py-4 px-space-lg text-right">
+<div class="inline-flex items-center justify-end gap-1.5">
+<button class="checkin-toggle-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors" data-checked="true" type="button">
+                    Undo Entry
+                  </button>
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" title="Resend Ticket Pass" type="button">
+<span class="material-symbols-outlined text-[18px]">forward_to_inbox</span>
+</button>
+<button class="p-1.5 rounded-lg text-error hover:bg-error-container hover:text-on-error-container transition-colors" title="Cancel &amp; Refund" type="button">
+<span class="material-symbols-outlined text-[18px]">person_cancel</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2: Unchecked Confirmed -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group" data-status="unchecked">
+<td class="py-4 px-space-lg flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center font-headline-sm text-headline-sm font-bold flex-shrink-0">
+                  MR
+                </div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Marcus Reynolds</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">m.reynolds@synthetix.ai</span>
+</div>
+</td>
+<td class="py-4 px-space-md">
+<span class="font-code-tabular text-code-tabular px-2 py-1 rounded bg-surface-container text-on-surface">TKT-4109-GEN</span>
+</td>
+<td class="py-4 px-space-md">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm font-semibold">Standard</span>
+</td>
+<td class="py-4 px-space-md text-body-sm font-body-sm text-on-surface-variant">
+                Nov 03, 2024 • 02:40 PM
+              </td>
+<td class="py-4 px-space-md status-cell">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm font-bold">
+                  Confirmed
+                </span>
+</td>
+<td class="py-4 px-space-lg text-right">
+<div class="inline-flex items-center justify-end gap-1.5">
+<button class="checkin-toggle-btn px-3 py-1.5 rounded-lg bg-primary text-on-primary font-label-sm text-label-sm hover:bg-primary-container shadow-sm transition-all" data-checked="false" type="button">
+                    Manual Check-In
+                  </button>
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" title="Resend Ticket Pass" type="button">
+<span class="material-symbols-outlined text-[18px]">forward_to_inbox</span>
+</button>
+<button class="p-1.5 rounded-lg text-error hover:bg-error-container hover:text-on-error-container transition-colors" title="Cancel &amp; Refund" type="button">
+<span class="material-symbols-outlined text-[18px]">person_cancel</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3: Checked In -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group" data-status="checked-in">
+<td class="py-4 px-space-lg flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-full bg-secondary-fixed text-secondary flex items-center justify-center font-headline-sm text-headline-sm font-bold flex-shrink-0">
+                  EV
+                </div></td>
+<td class="py-4 px-space-md">
+<span class="font-code-tabular text-code-tabular px-2 py-1 rounded bg-surface-container text-on-surface">TKT-7720-SPK</span>
+</td>
+<td class="py-4 px-space-md">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-secondary/15 text-secondary font-label-sm text-label-sm font-semibold">Speaker Pass</span>
+</td>
+<td class="py-4 px-space-md text-body-sm font-body-sm text-on-surface-variant">
+                Sep 28, 2024 • 11:15 AM
+              </td>
+<td class="py-4 px-space-md status-cell">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/15 text-secondary font-label-sm text-label-sm font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                  Checked-In
+                </span>
+</td>
+<td class="py-4 px-space-lg text-right">
+<div class="inline-flex items-center justify-end gap-1.5">
+<button class="checkin-toggle-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors" data-checked="true" type="button">
+                    Undo Entry
+                  </button>
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" title="Resend Ticket Pass" type="button">
+<span class="material-symbols-outlined text-[18px]">forward_to_inbox</span>
+</button>
+<button class="p-1.5 rounded-lg text-error hover:bg-error-container hover:text-on-error-container transition-colors" title="Cancel &amp; Refund" type="button">
+<span class="material-symbols-outlined text-[18px]">person_cancel</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4: Waitlisted -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group" data-status="waitlist">
+<td class="py-4 px-space-lg flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-full bg-tertiary-fixed text-tertiary flex items-center justify-center font-headline-sm text-headline-sm font-bold flex-shrink-0">
+                  DK
+                </div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Devon Kim</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">dkim@scaleinfra.dev</span>
+</div>
+</td>
+<td class="py-4 px-space-md">
+<span class="font-code-tabular text-code-tabular px-2 py-1 rounded bg-surface-container text-outline">WTL-0014-QUE</span>
+</td>
+<td class="py-4 px-space-md">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm font-semibold">Standard Wait</span>
+</td>
+<td class="py-4 px-space-md text-body-sm font-body-sm text-on-surface-variant">
+                Nov 15, 2024 • 04:02 PM
+              </td>
+<td class="py-4 px-space-md status-cell">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary/15 text-tertiary font-label-sm text-label-sm font-bold">
+                  Waitlisted (#14)
+                </span>
+</td>
+<td class="py-4 px-space-lg text-right">
+<div class="inline-flex items-center justify-end gap-1.5">
+<button class="px-3 py-1.5 rounded-lg bg-tertiary text-on-tertiary font-label-sm text-label-sm hover:opacity-90 shadow-sm transition-all" type="button">
+                    Admit from Waitlist
+                  </button>
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" title="Resend Notification" type="button">
+<span class="material-symbols-outlined text-[18px]">notifications_active</span>
+</button>
+<button class="p-1.5 rounded-lg text-error hover:bg-error-container hover:text-on-error-container transition-colors" title="Remove from Queue" type="button">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 5: Unchecked Confirmed -->
+<tr class="hover:bg-surface-container-low/40 transition-colors group" data-status="unchecked">
+<td class="py-4 px-space-lg flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center font-headline-sm text-headline-sm font-bold flex-shrink-0">
+                  AT
+                </div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface truncate">Amina Thorne</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">athorne@apexmedia.co</span>
+</div>
+</td>
+<td class="py-4 px-space-md">
+<span class="font-code-tabular text-code-tabular px-2 py-1 rounded bg-surface-container text-on-surface">TKT-1994-MED</span>
+</td>
+<td class="py-4 px-space-md">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm font-semibold">Press / Media</span>
+</td>
+<td class="py-4 px-space-md text-body-sm font-body-sm text-on-surface-variant">
+                Oct 29, 2024 • 08:12 AM
+              </td>
+<td class="py-4 px-space-md status-cell">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm font-bold">
+                  Confirmed
+                </span>
+</td>
+<td class="py-4 px-space-lg text-right">
+<div class="inline-flex items-center justify-end gap-1.5">
+<button class="checkin-toggle-btn px-3 py-1.5 rounded-lg bg-primary text-on-primary font-label-sm text-label-sm hover:bg-primary-container shadow-sm transition-all" data-checked="false" type="button">
+                    Manual Check-In
+                  </button>
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" title="Resend Ticket Pass" type="button">
+<span class="material-symbols-outlined text-[18px]">forward_to_inbox</span>
+</button>
+<button class="p-1.5 rounded-lg text-error hover:bg-error-container hover:text-on-error-container transition-colors" title="Cancel &amp; Refund" type="button">
+<span class="material-symbols-outlined text-[18px]">person_cancel</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer & Quick Navigation -->
+<div class="p-space-md bg-surface-container-low/40 flex items-center justify-between text-body-sm font-body-sm text-on-surface-variant">
+<span>Showing <strong class="text-on-surface font-semibold">5</strong> of <strong class="text-on-surface font-semibold">186</strong> registered attendees</span>
+<div class="flex items-center gap-space-xs">
+<button class="px-2.5 py-1 rounded bg-surface-container text-on-surface-variant hover:text-on-surface disabled:opacity-40" disabled="" type="button">Previous</button>
+<button class="px-2.5 py-1 rounded bg-primary text-on-primary font-semibold" type="button">1</button>
+<button class="px-2.5 py-1 rounded bg-surface-container text-on-surface-variant hover:text-on-surface" type="button">2</button>
+<button class="px-2.5 py-1 rounded bg-surface-container text-on-surface-variant hover:text-on-surface" type="button">3</button>
+<span class="px-1 text-outline">…</span>
+<button class="px-2.5 py-1 rounded bg-surface-container text-on-surface-variant hover:text-on-surface" type="button">Next</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Reschedule Event Modal Drawer Dialog -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-inverse-surface/40 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300" id="reschedule-modal">
+<div class="bg-surface-container-lowest text-on-surface w-full max-w-xl rounded-2xl shadow-xl flex flex-col overflow-hidden transform scale-95 transition-transform duration-300" id="modal-card">
+<!-- Modal Header -->
+<div class="p-space-lg bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">edit_calendar</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Reschedule Event &amp; Notice</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Modify session scheduling and trigger automated broadcasts</p>
+</div>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors" id="close-modal-btn" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Modal Body Form -->
+<div class="p-space-lg flex flex-col gap-space-md">
+<!-- Event Date Picker Inputs -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold">New Event Date</label>
+<input class="w-full px-3 py-2 rounded-lg bg-surface text-on-surface font-body-sm text-body-sm focus:outline-none focus:bg-surface-container-low shadow-sm" type="date" value="2025-04-18"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold">Doors Opening Time</label>
+<input class="w-full px-3 py-2 rounded-lg bg-surface text-on-surface font-body-sm text-body-sm focus:outline-none focus:bg-surface-container-low shadow-sm" type="time" value="08:30"/>
+</div>
+</div>
+<!-- Venue Clarification -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold">Venue Hall Allocation</label>
+<input class="w-full px-3 py-2 rounded-lg bg-surface text-on-surface font-body-sm text-body-sm focus:outline-none focus:bg-surface-container-low shadow-sm" type="text" value="Moscone Center West • Main Stage Hall 3 &amp; Expo"/>
+</div>
+<!-- Reason / Notification Note Field -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold">Reschedule Reason &amp; Notice</label>
+<textarea class="w-full px-3 py-2 rounded-lg bg-surface text-on-surface font-body-sm text-body-sm focus:outline-none focus:bg-surface-container-low shadow-sm placeholder:text-outline" placeholder="Keynote speaker flight delays prompted an adjustment of 30 minutes to facilitate seamless badge pickup." rows="3">Keynote speaker schedule optimization: opening remarks and breakfast badge pickup will shift ahead by 30 minutes to accommodate key arrivals.</textarea>
+</div>
+<!-- Automated Broadcast Delivery Preview Box -->
+<div class="p-space-md rounded-xl bg-surface-container flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase font-bold text-primary flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">campaign</span> Automated Broadcast Trigger
+            </span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary/15 text-secondary font-label-sm text-label-sm font-semibold">Ready</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface">
+            Immediate dispatch will send calendar updates, revised QR pass links, and SMS confirmations to <strong>186 registered attendees</strong> and <strong>38 waitlisted candidates</strong>.
+          </p>
+<div class="flex items-center gap-space-md mt-1">
+<label class="flex items-center gap-2 cursor-pointer font-body-sm text-body-sm text-on-surface-variant">
+<input checked="" class="rounded text-primary focus:ring-0 w-4 h-4" type="checkbox"/>
+<span>Send Email Pass (.ics included)</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer font-body-sm text-body-sm text-on-surface-variant">
+<input checked="" class="rounded text-primary focus:ring-0 w-4 h-4" type="checkbox"/>
+<span>Send Urgent SMS Push</span>
+</label>
+</div>
+</div>
+</div>
+<!-- Modal Action Buttons -->
+<div class="p-space-lg bg-surface-container-low flex items-center justify-end gap-space-sm">
+<button class="px-4 py-2.5 rounded-lg bg-surface text-on-surface font-label-lg text-label-lg hover:bg-surface-container-high transition-colors" id="cancel-modal-btn" type="button">
+          Cancel
+        </button>
+<button class="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary-container transition-all shadow-md active:scale-95 flex items-center gap-2" id="confirm-reschedule-btn" type="button">
+<span class="material-symbols-outlined text-[18px]">send</span>
+          Confirm &amp; Notify 186 Attendees
+        </button>
+</div>
+</div>
+</div>
+<!-- Operational Toast Notification Prototype -->
+<div class="fixed bottom-6 right-6 z-50 bg-inverse-surface text-inverse-on-surface px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300" id="toast-notification">
+<span class="material-symbols-outlined text-secondary-fixed text-[20px]" id="toast-icon">check_circle</span>
+<span class="font-body-sm text-body-sm" id="toast-text">Operation completed successfully.</span>
+</div>
+<script>
+    // Reschedule Modal Interactive Controller
+    const modal = document.getElementById('reschedule-modal');
+    const modalCard = document.getElementById('modal-card');
+    const openBtn = document.getElementById('open-reschedule-btn');
+    const closeBtn = document.getElementById('close-modal-btn');
+    const cancelBtn = document.getElementById('cancel-modal-btn');
+    const confirmBtn = document.getElementById('confirm-reschedule-btn');
+    const toast = document.getElementById('toast-notification');
+    const toastText = document.getElementById('toast-text');
+
+    function showToast(message) {
+      toastText.textContent = message;
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 3500);
+    }
+
+    function openModal() {
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      modalCard.classList.remove('scale-95');
+      modalCard.classList.add('scale-100');
+    }
+
+    function closeModal() {
+      modalCard.classList.remove('scale-100');
+      modalCard.classList.add('scale-95');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    if (openBtn) openBtn.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => {
+        closeModal();
+        showToast('Rescheduled event confirmed. 186 attendees notified via email & SMS.');
+      });
+    }
+
+    // Export CSV Notification
+    const exportBtn = document.getElementById('export-csv-btn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        showToast('Generating CSV export: CloudScale_Summit_Attendees.csv (186 records)');
+      });
+    }
+
+    // Filter Pills Toggle
+    const filterButtons = document.querySelectorAll('.filter-pill');
+    const rows = document.querySelectorAll('#table-rows tr');
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterButtons.forEach(b => {
+          b.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm');
+          b.classList.add('bg-surface-container', 'text-on-surface-variant');
+        });
+        btn.classList.add('bg-primary', 'text-on-primary', 'shadow-sm');
+        btn.classList.remove('bg-surface-container', 'text-on-surface-variant');
+
+        const filter = btn.getAttribute('data-filter');
+        rows.forEach(row => {
+          const rowStatus = row.getAttribute('data-status');
+          if (filter === 'all' || rowStatus === filter) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // Realtime Check-In Button Toggle Interaction
+    document.querySelectorAll('.checkin-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const isChecked = this.getAttribute('data-checked') === 'true';
+        const row = this.closest('tr');
+        const statusCell = row.querySelector('.status-cell');
+
+        if (isChecked) {
+          // Revert to Confirmed
+          this.setAttribute('data-checked', 'false');
+          this.textContent = 'Manual Check-In';
+          this.className = 'checkin-toggle-btn px-3 py-1.5 rounded-lg bg-primary text-on-primary font-label-sm text-label-sm hover:bg-primary-container shadow-sm transition-all';
+          row.setAttribute('data-status', 'unchecked');
+          statusCell.innerHTML = `
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm font-bold">
+              Confirmed
+            </span>
+          `;
+          showToast('Attendee status marked as Unchecked.');
+        } else {
+          // Check-In
+          this.setAttribute('data-checked', 'true');
+          this.textContent = 'Undo Entry';
+          this.className = 'checkin-toggle-btn px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors';
+          row.setAttribute('data-status', 'checked-in');
+          statusCell.innerHTML = `
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/15 text-secondary font-label-sm text-label-sm font-bold">
+              <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+              Checked-In
+            </span>
+          `;
+          showToast('Attendee successfully checked into venue!');
+        }
+      });
+    });
+
+    // Search input filter
+    const searchInput = document.getElementById('attendee-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        rows.forEach(row => {
+          const text = row.innerText.toLowerCase();
+          if (text.includes(query)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+    }
+  </script>
+</div></main><footer class="w-full bg-surface-container-low border-t border-outline-variant py-space-xl"><div class="w-full px-margin flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm"><img alt="EventPulse Logo" class="h-6 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1U65LRtA40CC7cqBbDkqLOc57M3lKuvBdB1pWhJ7VioI6rmiGBqJ280NouPRftMfrokUd0JCpHuAc1dmi1ebsE-0ntlwYwkH0ohJs6TgAZV409Ts_yJJL0lLrgSaQh7zLwmKjPMs9Zw7-5VlPmfKRaXowNeErgrXMzxl32F_xEWsZUafLoiI4QD4pCif-7VVHQB28BuEc4Xk3dNWZHWaCgYGf5-CCqE6gKQOje6uNcE79GBoOdjgKxXCld6"/><span class="font-label-lg text-label-lg text-on-surface">EventPulse</span></div><p class="font-body-sm text-body-sm text-on-surface-variant">© 2025 EventPulse Platform Inc. Precision event management and ticket orchestration.</p><div class="flex items-center gap-space-lg"><a class="font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" href="#">Terms</a><a class="font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" href="#">Privacy</a><a class="font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" href="#">Support</a></div></div></footer></body></html>

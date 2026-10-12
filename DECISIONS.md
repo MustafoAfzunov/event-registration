@@ -550,3 +550,46 @@ Format: **D-NNN, title** · When · Decision · Why · Rejected alternatives.
 - **When:** 2026-10-12T05:07:58+06:00
 - **Decision:** the "AI tools" section names the tool (Claude Code, desktop app) and the model (Claude Opus 5.5, `claude-opus-5-5`), says what it did, and gives the reason in terms of the task (evidence-driven work), not as an assumed personal motive. The two decisions the developer actually made through the AI's questions are linked.
 - **Why:** the brief asks for honesty, and the developer's motives aren't recorded anywhere in this repository.
+
+---
+<!-- Phase 7b -->
+
+### D-092: Stitch design adopted with the export's Tailwind theme verbatim (Tailwind 3.4 + PostCSS, not the CDN script, not v4)
+- **When:** 2026-10-12T20:04:58+06:00
+- **Decision:** `frontend/tailwind.config.js` is generated from the export's own `tailwind.config` (identical in all four screens): 47 colors, radius, spacing, 13 type sizes copied as is. The only change is the font stacks (self-hosted names). Tailwind runs inside the Vite build.
+- **Why:** the exported class names (`px-margin`, `font-body-md`, `bg-surface-container-lowest`, ...) work unchanged, which is what "reuse the exported classes" needs. v3.4 takes that config object as is, while v4 would need the theme rewritten. The export's `cdn.tailwindcss.com` script compiles in the browser at runtime and is not for production.
+- **Radius scale:** `DESIGN.md` lists a different radius scale than the exported config. We follow the exported config, because the screenshots were rendered with it.
+
+### D-093: Fonts and icons are self-hosted (@fontsource-variable); no runtime calls to Google
+- **When:** 2026-10-12T20:04:58+06:00
+- **Decision:** Inter and Plus Jakarta Sans (variable) plus Material Symbols Outlined with the `FILL` axis (the design uses filled icons). The icon font is about 1.1 MB (cached after the first load).
+- **Why:** the app runs from a local `docker compose` and should work offline and without third-party requests. A smaller icon subset is only available through Google's hosted URL. Verified: the deployed bundle has no reference to googleapis, gstatic, a CDN or the mockup image host.
+
+### D-094: "No dummy data": what was kept, adapted, and removed
+- **When:** 2026-10-12T20:04:58+06:00
+- **Decision:** the elements without backend support were removed rather than faked: brand name and logo (replaced by our "Event Registration" + an icon mark), search, notifications, avatar, "My Tickets"; the venue/map/calendar/speakers/schedule/FAQ/tiers/prices/revenue blocks; QR and barcode, wallets/PDF/transfer, camera feed, gate velocity, supervisor override, printer panel, Simulate buttons, CSV export, SMS/ICS checkboxes, doors-time/venue/reason fields. Real-data adaptations: availability bar (`capacity`, `seats_left`); the 4th dashboard card shows email delivery from `/stats` instead of revenue; the check-in right column is a live "Attendance" card; the check-in "stream" is the real checked-in list; the ticket stub holds the real ticket code; the ticket page countdown is computed from `starts_at`.
+- **Mapping and judgment calls** were approved by the user before implementation (see the phase 7b message in DEVLOG).
+
+### D-095: Client-side search, paging and filtering of the participants list; one fetch per live frame
+- **When:** 2026-10-12T20:04:58+06:00
+- **Decision:** the dashboard loads `GET .../registrations` once (and again on every live frame); tabs, search (email or ticket code, tolerant of case, spaces and dashes) and pagination (10 per page) work on that list. The pill counts come from the live stats.
+- **Why:** the API has no search or paging, and the list was already unpaged. This uses existing data only and replaces N per-tab requests with one. Limit: very large events load the whole list (no server paging). Same limit as before.
+- **Supersedes** the per-tab `?status=` fetching from phase 7 (test `filters_participants_by_status` now asserts no extra request).
+
+### D-096: Reschedule, edit and create live in modals; one `Modal` component with basic focus management
+- **When:** 2026-10-12T20:04:58+06:00
+- **Decision:** the design's modal pattern. "Reschedule / Edit Event" opens a dialog with tabs Reschedule and Details (title, description, capacity, plus "Cancel this event" at the bottom). Create event is a dialog on `/admin` (`?new=1` opens it, so the dashboard's "Create New Event" can link to it). The dialog traps Tab, closes on Escape or backdrop click, returns focus to the opener, and locks body scroll. "Confirm & Notify N" shows the real count (registered + waitlisted from live stats, which matches who the backend emails). Results appear in a toast. Errors stay inside the dialog so the value can be fixed.
+- **Limit:** the trap is a small hand-written one (no library); it has component tests for Escape and focus return, but no screen-reader testing.
+
+### D-097: Availability tiers and other presentation rules are defined in tested pure functions
+- **When:** 2026-10-12T20:04:58+06:00
+- **Decision:** `capacityTier`: sold out -> "Sold out · waitlist open" (amber), >= 80% taken -> "High demand" (rose), otherwise "Seats available" (emerald). `countdown`, `timeAgo`, `percent`, `initialsOf` live in `format.ts` with unit tests. The 80% threshold is mine (the design shows one example state at 86%) and is documented in the test.
+
+### D-098: Two deliberate deviations from the export
+- **When:** 2026-10-12T20:04:58+06:00
+- **Decision:** (1) a compact scrolling nav row below `lg`: the export hides its navigation on phones with no replacement, which would leave organizers unable to navigate; (2) scrollbars are not hidden: the export applies `::-webkit-scrollbar { display: none }` globally, which hides the cue that tables and modals scroll.
+- **Also:** the nav shows "Check-In Terminal" only inside an event's organizer pages (it needs an event), and "Log out" lives in the header (the export has no logout).
+
+### D-099: Real-browser review found two defects the component tests could not
+- **When:** 2026-10-12T20:04:58+06:00
+- **Decision/result:** (1) the ticket code wrapped to two lines in the stub, and (2) at 375px the participants table crushed the email column to a few characters instead of scrolling. Both fixed (code is `whitespace-nowrap` in a wider stub; tables have a minimum width inside their scroll container), plus status pills no longer wrap and the check-in placeholder no longer collides with its hint. jsdom has no layout engine, so this class of bug needs a real browser. There's no automated visual regression test (stays a manual check, see DEVLOG).

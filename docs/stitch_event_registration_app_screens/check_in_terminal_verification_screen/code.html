@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-secondary":"#ffffff","primary":"#3525cd","on-secondary-fixed":"#002113","surface-variant":"#dae2fd","inverse-surface":"#283044","surface":"#faf8ff","on-tertiary-fixed":"#2a1700","on-secondary-fixed-variant":"#005236","tertiary-container":"#885500","on-tertiary":"#ffffff","background":"#faf8ff","surface-container-low":"#f2f3ff","surface-container-lowest":"#ffffff","on-surface":"#131b2e","surface-container":"#eaedff","on-error-container":"#93000a","on-background":"#131b2e","tertiary":"#684000","on-primary-container":"#dad7ff","error":"#ba1a1a","on-tertiary-fixed-variant":"#653e00","secondary-container":"#6cf8bb","surface-container-highest":"#dae2fd","on-secondary-container":"#00714d","primary-fixed":"#e2dfff","surface-tint":"#4d44e3","on-primary":"#ffffff","error-container":"#ffdad6","on-tertiary-container":"#ffd4a4","on-primary-fixed-variant":"#3323cc","on-surface-variant":"#464555","outline-variant":"#c7c4d8","primary-fixed-dim":"#c3c0ff","inverse-on-surface":"#eef0ff","secondary-fixed":"#6ffbbe","surface-container-high":"#e2e7ff","secondary":"#006c49","surface-bright":"#faf8ff","surface-dim":"#d2d9f4","on-error":"#ffffff","inverse-primary":"#c3c0ff","tertiary-fixed-dim":"#ffb95f","outline":"#777587","on-primary-fixed":"#0f0069","tertiary-fixed":"#ffddb8","primary-container":"#4f46e5","secondary-fixed-dim":"#4edea3"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{"space-xs":"0.25rem","space-sm":"0.5rem",gutter:"1.5rem","space-xl":"2.5rem","space-md":"1rem","space-lg":"1.5rem","margin-mobile":"1rem","gutter-mobile":"1rem",margin:"2rem"},fontFamily:{"body-lg":["Inter"],"display-hero":["Plus Jakarta Sans"],"body-sm":["Inter"],"headline-sm":["Plus Jakarta Sans"],"label-sm":["Inter"],"headline-md":["Plus Jakarta Sans"],"label-md":["Inter"],"display-hero-mobile":["Plus Jakarta Sans"],"body-md":["Inter"],"headline-lg-mobile":["Plus Jakarta Sans"],"label-lg":["Inter"],"headline-lg":["Plus Jakarta Sans"],"code-tabular":["Inter"]},fontSize:{"body-lg":["16px",{lineHeight:"26px",letterSpacing:"-0.005em",fontWeight:"400"}],"display-hero":["48px",{lineHeight:"56px",letterSpacing:"-0.03em",fontWeight:"800"}],"body-sm":["12px",{lineHeight:"18px",letterSpacing:"0em",fontWeight:"400"}],"headline-sm":["18px",{lineHeight:"26px",letterSpacing:"-0.01em",fontWeight:"600"}],"label-sm":["11px",{lineHeight:"14px",letterSpacing:"0.04em",fontWeight:"700"}],"headline-md":["24px",{lineHeight:"32px",letterSpacing:"-0.015em",fontWeight:"600"}],"label-md":["12px",{lineHeight:"16px",letterSpacing:"0.02em",fontWeight:"600"}],"display-hero-mobile":["32px",{lineHeight:"40px",letterSpacing:"-0.025em",fontWeight:"800"}],"body-md":["14px",{lineHeight:"22px",letterSpacing:"0em",fontWeight:"400"}],"headline-lg-mobile":["24px",{lineHeight:"32px",letterSpacing:"-0.02em",fontWeight:"700"}],"label-lg":["14px",{lineHeight:"20px",letterSpacing:"0em",fontWeight:"600"}],"headline-lg":["32px",{lineHeight:"40px",letterSpacing:"-0.02em",fontWeight:"700"}],"code-tabular":["13px",{lineHeight:"18px",letterSpacing:"0.01em",fontWeight:"500"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface"><header class="fixed top-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-outline-variant"><div class="h-16 w-full px-margin flex items-center justify-between gap-gutter"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm"><img alt="EventPulse Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1U65LRtA40CC7cqBbDkqLOc57M3lKuvBdB1pWhJ7VioI6rmiGBqJ280NouPRftMfrokUd0JCpHuAc1dmi1ebsE-0ntlwYwkH0ohJs6TgAZV409Ts_yJJL0lLrgSaQh7zLwmKjPMs9Zw7-5VlPmfKRaXowNeErgrXMzxl32F_xEWsZUafLoiI4QD4pCif-7VVHQB28BuEc4Xk3dNWZHWaCgYGf5-CCqE6gKQOje6uNcE79GBoOdjgKxXCld6"/><span class="font-headline-sm text-headline-sm text-on-surface">EventPulse</span></div><nav class="hidden lg:flex items-center gap-space-lg" data-active-classes="text-primary font-bold"><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors" data-path="explore-events" href="#">Explore Events</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors" data-path="my-tickets" href="#">My Tickets</a><a class="font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors" data-path="organizer-studio" href="#">Organizer Studio</a><a aria-current="page" class="transition-colors text-primary font-bold" data-path="check-in-terminal" href="#">Check-In Terminal</a></nav></div><div class="flex items-center gap-space-md"><div class="relative hidden sm:block w-72"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span><input class="w-full pl-9 pr-space-md py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant text-on-surface font-body-sm text-body-sm focus:outline-none focus:border-primary" placeholder="Search events, artists, venues..." type="text"/></div><div class="relative flex items-center"><button aria-label="Notifications" class="p-space-xs rounded-full text-on-surface-variant hover:text-on-surface transition-colors relative flex items-center justify-center" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-error ring-2 ring-surface"></span></button></div><div class="flex items-center gap-space-xs cursor-pointer"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBC7jHZXnduzYamfRf1Wj9La1uJqd6hv3_16VRueVnH1pOi-d9gDylFdcI1wWc8ESk7EjQRHxyGxcHFZs921IaBqfhzz84IC_uh-dNWyL9e5j5kp8mMAFlAnvBlJfdDx_qwib6KKCzNV9AT6ChWdu3fKHSmCDjLqWk6YsjOLWMTizvdrCqnFLy9foWj7emzqBOxeerT0sEj11Y80QZ1taPfzjWdbb1okEYJjbxNoq-h4kjS4vyBwRsyg"/><span class="material-symbols-outlined text-outline-variant text-[20px]">keyboard_arrow_down</span></div></div></div></header><main class="w-full pt-16 bg-surface min-h-screen"><div class="flex flex-col w-full">
+<div class="w-full px-margin py-space-md flex flex-col gap-space-lg max-w-[1440px] mx-auto">
+<!-- Top Bar: Operational Telemetry & Terminal Context -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col lg:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-12 h-12 rounded-lg bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">sensors</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-on-surface truncate">CloudScale Summit 2025</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider shrink-0">Door Gate 1</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[16px] text-outline">dns</span>
+            Terminal ID: KIOSK-NORTH-01 • Active Shift: Tech &amp; Executive Intake
+          </p>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-space-lg w-full lg:w-auto justify-end">
+<!-- Live Synced Counter & Progress -->
+<div class="flex items-center gap-space-md bg-surface-container-low px-space-md py-2 rounded-lg">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Live Check-In Quota</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold" id="counterDisplay">42 / 186</span>
+<span class="font-body-sm text-body-sm text-primary font-semibold">(22.5%)</span>
+</div>
+</div>
+<div class="w-24 bg-surface-container-highest h-2.5 rounded-full overflow-hidden shrink-0">
+<div class="bg-primary h-full rounded-full transition-all duration-500" style="width: 22.5%;"></div>
+</div>
+</div>
+<!-- Sync Health Indicator -->
+<div class="flex items-center gap-space-xs bg-secondary-fixed/30 px-space-md py-2 rounded-lg text-on-secondary-fixed">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary"></span>
+</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold text-on-secondary-fixed">Online • Low Latency</span>
+<span class="font-label-sm text-label-sm opacity-80">Synced 2s ago (Edge API)</span>
+</div>
+</div>
+<!-- Audio Alert Trigger Simulator -->
+<button aria-label="Toggle scan chime" class="p-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors flex items-center justify-center" id="toggleAudioBtn" title="Buzzer chime feedback on verify" type="button">
+<span class="material-symbols-outlined text-[20px]">volume_up</span>
+</button>
+</div>
+</div>
+<!-- Center Verification & Optical Scanner Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+<!-- Primary Input Console -->
+<div class="lg:col-span-8 flex flex-col gap-space-md">
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<label class="font-label-lg text-label-lg text-on-surface flex items-center gap-space-xs" for="passCodeInput">
+<span class="material-symbols-outlined text-primary text-[20px]">qr_code_scanner</span>
+<span>Optical Scanner / Manual Validation</span>
+</label>
+<div class="flex items-center gap-space-xs">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Scanner Ready</span>
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+</div>
+</div>
+<form class="flex flex-col sm:flex-row items-stretch gap-space-sm" id="verifyForm" onsubmit="event.preventDefault(); window.handleManualVerify();">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[22px]">keyboard</span>
+<input autofocus="" class="w-full pl-12 pr-space-md py-3 rounded-lg bg-surface-container-lowest text-on-surface font-code-tabular text-body-lg placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary shadow-sm" id="passCodeInput" placeholder="Enter 6-digit code or scan ticket QR/barcode (e.g., EP-9042)" type="text"/>
+<span class="absolute right-3 top-1/2 -translate-y-1/2 font-label-sm text-label-sm text-outline-variant uppercase">ESC to Clear</span>
+</div>
+<button class="px-space-lg py-3 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-space-xs transition-transform active:scale-[0.98] shadow-sm shrink-0" type="submit">
+<span class="material-symbols-outlined text-[20px]">verified</span>
+<span>Verify &amp; Check-In</span>
+</button>
+</form>
+<!-- Quick Simulation Shortcuts for Demo Review -->
+<div class="flex flex-wrap items-center gap-space-xs pt-space-xs">
+<span class="font-label-sm text-label-sm text-on-surface-variant mr-1">Simulate:</span>
+<button class="px-2.5 py-1 rounded bg-secondary-fixed/40 text-on-secondary-fixed hover:bg-secondary-fixed font-label-sm text-label-sm transition-colors flex items-center gap-1" onclick="window.triggerSampleSuccess()" type="button">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Pass #EP-9042 (VIP Valid)
+            </button>
+<button class="px-2.5 py-1 rounded bg-error-container/60 text-error hover:bg-error-container font-label-sm text-label-sm transition-colors flex items-center gap-1" onclick="window.triggerSampleAlreadyUsed()" type="button">
+<span class="material-symbols-outlined text-[14px]">repeat</span> Pass #EP-1108 (Duplicate Gate 2)
+            </button>
+<button class="px-2.5 py-1 rounded bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest font-label-sm text-label-sm transition-colors flex items-center gap-1" onclick="window.triggerSampleCancelled()" type="button">
+<span class="material-symbols-outlined text-[14px]">block</span> Pass #EP-0000 (Refunded)
+            </button>
+</div>
+</div>
+<!-- Verification Results Container -->
+<div class="flex flex-col gap-space-md" id="statusResultContainer">
+<!-- STATE 1: Live Confirmed Attendee Card -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm transition-all duration-300 relative overflow-hidden" id="successCard">
+<div class="absolute top-0 left-0 bottom-0 w-2 bg-secondary"></div>
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-16 h-16 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container shadow-sm shrink-0">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-lg text-headline-lg text-on-surface font-bold">Alex Morgan</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Verified
+                    </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant font-medium">Head of Infrastructure • NovaCloud Systems</p>
+<p class="font-code-tabular text-body-sm text-outline mt-0.5">UUID: EP-9042-8821 • Purchased Mar 04, 2025</p>
+</div>
+</div>
+<!-- Pass Badge Pill -->
+<div class="flex flex-col items-start md:items-end gap-1">
+<div class="px-3 py-1.5 rounded-lg bg-primary-fixed text-primary font-headline-sm text-headline-sm font-bold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[20px]">stars</span>
+<span>VIP PASS - ALL ACCESS</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Lounge Access + Speaker Dinners Included</span>
+</div>
+</div>
+<div class="mt-space-md pt-space-md bg-surface-container-low rounded-lg p-space-md flex flex-col md:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined text-[22px]">print</span>
+</div>
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="font-label-lg text-label-lg text-on-surface">Thermal Badge Dispenser</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">Ready to Print Badge #042</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Zebra ZD621 • Direct Ribbon Active • Tray A</p>
+</div>
+</div>
+<div class="flex items-center gap-space-xs w-full md:w-auto justify-end">
+<button class="px-space-md py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md flex items-center gap-1.5 shadow-sm transition-colors" id="printBadgeBtn" onclick="window.simulatePrint()" type="button">
+<span class="material-symbols-outlined text-[18px]">print</span>
+<span>Print Badge #042</span>
+</button>
+<div class="px-3 py-2 rounded-lg bg-surface-container-lowest text-on-surface-variant font-code-tabular text-body-sm">
+                  Confirmed: <span class="font-bold text-on-surface">09:14:22 AM</span>
+</div>
+</div>
+</div>
+</div>
+<!-- STATE 2: Error Notification Showcase (Duplicate / Gate Flag) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm relative overflow-hidden" id="errorCardDuplicate">
+<div class="absolute top-0 left-0 bottom-0 w-2 bg-error"></div>
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md">
+<div class="flex items-start gap-space-md">
+<div class="w-12 h-12 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[28px]">warning</span>
+</div>
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-error font-bold">Already Checked In</span>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-sm text-label-sm">Conflict Detected</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface mt-1">
+                    Pass <span class="font-code-tabular font-bold">#EP-1108</span> was logged at <span class="font-semibold text-on-surface">08:42 AM</span> by <span class="font-semibold text-on-surface">Gate 2 (South Entrance)</span>.
+                  </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Attendee registered: Marcus Vance (Acrobyte Technologies)</p>
+</div>
+</div>
+<!-- Supervisor Action Controls -->
+<div class="flex flex-wrap items-center gap-space-xs shrink-0 w-full sm:w-auto justify-end">
+<button class="px-space-md py-2 rounded-lg bg-error text-on-error hover:bg-error-container hover:text-on-error-container font-label-md text-label-md flex items-center gap-1.5 shadow-sm transition-colors" onclick="window.promptSupervisorOverride('EP-1108')" type="button">
+<span class="material-symbols-outlined text-[18px]">lock_open</span>
+<span>Supervisor PIN Override</span>
+</button>
+<button class="px-space-md py-2 rounded-lg bg-surface-container-high text-on-surface font-label-md text-label-md hover:bg-surface-container-highest transition-colors" onclick="window.flagInvestigate('EP-1108')" type="button">
+                  Flag Security
+                </button>
+</div>
+</div>
+</div>
+<!-- STATE 3: Error Notification Showcase (Cancelled / Revoked Pass) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm relative overflow-hidden" id="errorCardInvalid">
+<div class="absolute top-0 left-0 bottom-0 w-2 bg-tertiary"></div>
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md">
+<div class="flex items-start gap-space-md">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[28px]">cancel</span>
+</div>
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-tertiary-fixed-variant font-bold">Invalid or Cancelled Pass</span>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-fixed-dim/40 text-on-tertiary-fixed-variant font-label-sm text-label-sm">Voided</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface mt-1">
+                    Ticket Code <span class="font-code-tabular font-bold">#EP-0000</span> was marked <span class="font-semibold text-error">REFUNDED / CHARGEBACK</span> on Feb 28, 2025.
+                  </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Direct attendee to the Central Help Desk &amp; Registration Box Office.</p>
+</div>
+</div>
+<div class="flex items-center gap-space-xs shrink-0 w-full sm:w-auto justify-end">
+<a class="px-space-md py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md flex items-center gap-1 transition-colors" href="#helpdesk">
+<span class="material-symbols-outlined text-[18px]">support_agent</span>
+<span>Escort to Box Office</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Optical Camera Scanner & Gate Diagnostics -->
+<div class="lg:col-span-4 flex flex-col gap-space-md">
+<!-- Live Scanner Viewport Module -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">videocam</span>
+<span class="font-label-lg text-label-lg text-on-surface">Optical Camera Feed</span>
+</div>
+<button class="font-label-sm text-label-sm text-primary hover:underline font-semibold" id="toggleCameraBtn" onclick="window.toggleCameraFeed()" type="button">
+              Pause Feed
+            </button>
+</div>
+<!-- Camera Simulated Viewport -->
+<div class="relative w-full aspect-video sm:aspect-square bg-inverse-surface rounded-lg overflow-hidden flex items-center justify-center">
+<!-- Simulated scanner visual overlay -->
+<div class="w-full h-full relative flex items-center justify-center bg-inverse-surface" id="videoContainer">
+<div class="absolute inset-4 rounded border-2 border-dashed border-surface/40 flex items-center justify-center pointer-events-none">
+<div class="w-48 h-48 border-2 border-secondary rounded-lg relative flex items-center justify-center">
+<!-- Reticle Crosshairs -->
+<div class="w-2.5 h-2.5 rounded-full bg-secondary"></div>
+<!-- Laser sweep beam -->
+<div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-secondary to-transparent animate-pulse" style="animation-duration: 1.5s;"></div>
+</div>
+</div>
+<!-- Reticle Corners -->
+<div class="absolute inset-x-8 inset-y-12 pointer-events-none flex flex-col justify-between">
+<div class="flex justify-between">
+<span class="w-4 h-4 border-t-2 border-l-2 border-secondary"></span>
+<span class="w-4 h-4 border-t-2 border-r-2 border-secondary"></span>
+</div>
+<div class="flex justify-between">
+<span class="w-4 h-4 border-b-2 border-l-2 border-secondary"></span>
+<span class="w-4 h-4 border-b-2 border-r-2 border-secondary"></span>
+</div>
+</div>
+<div class="absolute bottom-3 inset-x-0 flex justify-center">
+<div class="bg-inverse-surface/80 backdrop-blur-md px-3 py-1 rounded-full text-inverse-on-surface font-code-tabular text-body-sm flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span>Align QR / Barcode Inside Reticle</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Hardware Selector -->
+<div class="grid grid-cols-2 gap-space-xs pt-1">
+<div class="bg-surface-container-low p-2 rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Lens Sensor</span>
+<span class="font-label-md text-label-md text-on-surface font-medium truncate">Logitech Brio 4K</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Laser Mode</span>
+<span class="font-label-md text-label-md text-secondary font-medium">Continuous Omni</span>
+</div>
+</div>
+</div>
+<!-- Terminal Stats & Gatekeeper Summary -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg text-on-surface">Gate 1 Velocity</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-fixed/50 text-on-secondary-fixed font-label-sm text-label-sm">Nominal Flow</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm pt-space-xs">
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Scan Average</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">1.4s / pax</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Gate Rejections</span>
+<span class="font-headline-sm text-headline-sm text-error font-bold">2 flagged</span>
+</div>
+</div>
+<!-- Quick Actions Bar -->
+<div class="flex flex-col gap-1.5 pt-space-xs">
+<button class="w-full py-2 px-space-md rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors" onclick="window.emergencyLockdown()" type="button">
+<span class="material-symbols-outlined text-[18px]">pause_circle</span>
+<span>Pause Intake Gate</span>
+</button>
+<button class="w-full py-2 px-space-md rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors" onclick="window.openSupervisorKeypad()" type="button">
+<span class="material-symbols-outlined text-[18px]">key</span>
+<span>Supervisor Admin Console</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Check-ins Live Feed with Undo Action -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-xs">
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">Recent Check-In Stream</span>
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm">Realtime Journal</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Audit ledger of badges authorized through Terminal Gate 1</p>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="px-3 py-1 rounded bg-surface-container-high text-on-surface font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors" onclick="window.filterLog('all')" type="button">All (42)</button>
+<button class="px-3 py-1 rounded bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container-high transition-colors" onclick="window.filterLog('vip')" type="button">VIP Only</button>
+<button class="px-3 py-1 rounded bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container-high transition-colors" onclick="window.filterLog('overrides')" type="button">Overrides</button>
+</div>
+</div>
+<!-- Live Stream Table / Rows -->
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase">
+<th class="py-2.5 px-space-md rounded-l-lg">Time</th>
+<th class="py-2.5 px-space-md">Attendee Name</th>
+<th class="py-2.5 px-space-md">Organization</th>
+<th class="py-2.5 px-space-md">Ticket Tier</th>
+<th class="py-2.5 px-space-md">Code Ref</th>
+<th class="py-2.5 px-space-md">Badge State</th>
+<th class="py-2.5 px-space-md text-right rounded-r-lg">Quick Action</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface" id="auditFeedBody">
+<!-- Row 1 (Just completed) -->
+<tr class="hover:bg-surface-container-low/60 transition-colors" id="row-EP-9042">
+<td class="py-3 px-space-md font-code-tabular text-body-sm text-on-surface-variant">09:14:22</td>
+<td class="py-3 px-space-md font-semibold text-on-surface flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Alex Morgan</span>
+</td>
+<td class="py-3 px-space-md text-on-surface-variant">NovaCloud Systems</td>
+<td class="py-3 px-space-md">
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm font-semibold">VIP PASS</span>
+</td>
+<td class="py-3 px-space-md font-code-tabular text-body-sm">EP-9042</td>
+<td class="py-3 px-space-md">
+<span class="text-secondary font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">print</span> Printed #042
+                </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-error-container hover:text-error text-on-surface-variant font-label-sm text-label-sm transition-colors inline-flex items-center gap-1" onclick="window.undoCheckin('EP-9042', 'Alex Morgan')" type="button">
+<span class="material-symbols-outlined text-[14px]">undo</span>
+<span>Undo</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors" id="row-EP-8931">
+<td class="py-3 px-space-md font-code-tabular text-body-sm text-on-surface-variant">09:12:08</td>
+<td class="py-3 px-space-md font-semibold text-on-surface flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Elena Rostova</span>
+</td>
+<td class="py-3 px-space-md text-on-surface-variant">HyperScale AI</td>
+<td class="py-3 px-space-md">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">General Admission</span>
+</td>
+<td class="py-3 px-space-md font-code-tabular text-body-sm">EP-8931</td>
+<td class="py-3 px-space-md">
+<span class="text-secondary font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">print</span> Printed #041
+                </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-error-container hover:text-error text-on-surface-variant font-label-sm text-label-sm transition-colors inline-flex items-center gap-1" onclick="window.undoCheckin('EP-8931', 'Elena Rostova')" type="button">
+<span class="material-symbols-outlined text-[14px]">undo</span>
+<span>Undo</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors" id="row-EP-8720">
+<td class="py-3 px-space-md font-code-tabular text-body-sm text-on-surface-variant">09:08:44</td>
+<td class="py-3 px-space-md font-semibold text-on-surface flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Kenji Takahashi</span>
+</td>
+<td class="py-3 px-space-md text-on-surface-variant">Apex Foundry Inc.</td>
+<td class="py-3 px-space-md">
+<span class="px-2 py-0.5 rounded-full bg-secondary-fixed/50 text-on-secondary-fixed font-label-sm text-label-sm">Speaker / Keynote</span>
+</td>
+<td class="py-3 px-space-md font-code-tabular text-body-sm">EP-8720</td>
+<td class="py-3 px-space-md">
+<span class="text-secondary font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">print</span> Printed #040
+                </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-error-container hover:text-error text-on-surface-variant font-label-sm text-label-sm transition-colors inline-flex items-center gap-1" onclick="window.undoCheckin('EP-8720', 'Kenji Takahashi')" type="button">
+<span class="material-symbols-outlined text-[14px]">undo</span>
+<span>Undo</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors" id="row-EP-8611">
+<td class="py-3 px-space-md font-code-tabular text-body-sm text-on-surface-variant">09:05:19</td>
+<td class="py-3 px-space-md font-semibold text-on-surface flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Devon Bailey</span>
+</td>
+<td class="py-3 px-space-md text-on-surface-variant">Vanguard Labs</td>
+<td class="py-3 px-space-md">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">General Admission</span>
+</td>
+<td class="py-3 px-space-md font-code-tabular text-body-sm">EP-8611</td>
+<td class="py-3 px-space-md">
+<span class="text-secondary font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">print</span> Printed #039
+                </span>
+</td>
+<td class="py-3 px-space-md text-right">
+<button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-error-container hover:text-error text-on-surface-variant font-label-sm text-label-sm transition-colors inline-flex items-center gap-1" onclick="window.undoCheckin('EP-8611', 'Devon Bailey')" type="button">
+<span class="material-symbols-outlined text-[14px]">undo</span>
+<span>Undo</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Interactive Terminal Scripting -->
+<script>
+    (function() {
+      const passInput = document.getElementById('passCodeInput');
+      const successCard = document.getElementById('successCard');
+      const errorCardDuplicate = document.getElementById('errorCardDuplicate');
+      const errorCardInvalid = document.getElementById('errorCardInvalid');
+      const counterDisplay = document.getElementById('counterDisplay');
+      let checkinCount = 42;
+      const totalAttendees = 186;
+
+      function playChime(success = true) {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          if (success) {
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+            osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1); // A5
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.35);
+          } else {
+            osc.frequency.setValueAtTime(220.00, ctx.currentTime); // A3
+            osc.frequency.setValueAtTime(164.81, ctx.currentTime + 0.12); // E3
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.4);
+          }
+        } catch(e) {
+          // AudioContext fallback
+        }
+      }
+
+      window.triggerSampleSuccess = function() {
+        successCard.classList.remove('hidden');
+        errorCardDuplicate.classList.add('hidden');
+        errorCardInvalid.classList.add('hidden');
+        playChime(true);
+        if (passInput) passInput.value = 'EP-9042';
+      };
+
+      window.triggerSampleAlreadyUsed = function() {
+        successCard.classList.add('hidden');
+        errorCardDuplicate.classList.remove('hidden');
+        errorCardInvalid.classList.add('hidden');
+        playChime(false);
+        if (passInput) passInput.value = 'EP-1108';
+      };
+
+      window.triggerSampleCancelled = function() {
+        successCard.classList.add('hidden');
+        errorCardDuplicate.classList.add('hidden');
+        errorCardInvalid.classList.remove('hidden');
+        playChime(false);
+        if (passInput) passInput.value = 'EP-0000';
+      };
+
+      window.handleManualVerify = function() {
+        const val = (passInput ? passInput.value : '').trim().toUpperCase();
+        if (!val) {
+          passInput.focus();
+          return;
+        }
+
+        if (val.includes('1108')) {
+          window.triggerSampleAlreadyUsed();
+        } else if (val.includes('0000') || val.includes('REF')) {
+          window.triggerSampleCancelled();
+        } else {
+          window.triggerSampleSuccess();
+          checkinCount++;
+          const pct = ((checkinCount / totalAttendees) * 100).toFixed(1);
+          if (counterDisplay) {
+            counterDisplay.innerText = checkinCount + ' / ' + totalAttendees;
+          }
+        }
+      };
+
+      window.simulatePrint = function() {
+        const btn = document.getElementById('printBadgeBtn');
+        if (btn) {
+          const original = btn.innerHTML;
+          btn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> <span>Dispensing Badge...</span>';
+          btn.disabled = true;
+          setTimeout(function() {
+            btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span> <span>Printed!</span>';
+            setTimeout(function() {
+              btn.innerHTML = original;
+              btn.disabled = false;
+            }, 1800);
+          }, 1200);
+        }
+      };
+
+      window.promptSupervisorOverride = function(code) {
+        const pin = prompt('Gatekeeper Supervisor PIN required for override on Ticket ' + code + ':');
+        if (pin && pin.trim().length >= 4) {
+          alert('Override authorized by supervisor badge #ADMIN-04. Check-in granted.');
+          window.triggerSampleSuccess();
+        }
+      };
+
+      window.flagInvestigate = function(code) {
+        alert('Ticket ' + code + ' marked for security inspection at Gate 1.');
+      };
+
+      window.undoCheckin = function(code, name) {
+        if (confirm('Reverse check-in for ' + name + ' (' + code + ')? This will void active badge printing.')) {
+          const row = document.getElementById('row-' + code);
+          if (row) {
+            row.style.opacity = '0.35';
+            row.style.pointerEvents = 'none';
+          }
+          checkinCount = Math.max(0, checkinCount - 1);
+          if (counterDisplay) {
+            counterDisplay.innerText = checkinCount + ' / ' + totalAttendees;
+          }
+        }
+      };
+
+      window.toggleCameraFeed = function() {
+        const btn = document.getElementById('toggleCameraBtn');
+        const cont = document.getElementById('videoContainer');
+        if (cont && btn) {
+          if (cont.style.opacity === '0.2') {
+            cont.style.opacity = '1';
+            btn.innerText = 'Pause Feed';
+          } else {
+            cont.style.opacity = '0.2';
+            btn.innerText = 'Resume Feed';
+          }
+        }
+      };
+
+      window.filterLog = function(type) {
+        // Aesthetic toggle for demonstration
+      };
+
+      window.emergencyLockdown = function() {
+        alert('Intake gate intake has been paused. Optical sensors placed on standby.');
+      };
+
+      window.openSupervisorKeypad = function() {
+        alert('Supervisor Administration Console opened in parallel secure session.');
+      };
+
+      // Key listeners for quick kiosk validation flow
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && passInput) {
+          passInput.value = '';
+          passInput.focus();
+        }
+      });
+    })();
+  </script>
+</div></main><footer class="w-full bg-surface-container-low border-t border-outline-variant py-space-xl"><div class="w-full px-margin flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm"><img alt="EventPulse Logo" class="h-6 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1U65LRtA40CC7cqBbDkqLOc57M3lKuvBdB1pWhJ7VioI6rmiGBqJ280NouPRftMfrokUd0JCpHuAc1dmi1ebsE-0ntlwYwkH0ohJs6TgAZV409Ts_yJJL0lLrgSaQh7zLwmKjPMs9Zw7-5VlPmfKRaXowNeErgrXMzxl32F_xEWsZUafLoiI4QD4pCif-7VVHQB28BuEc4Xk3dNWZHWaCgYGf5-CCqE6gKQOje6uNcE79GBoOdjgKxXCld6"/><span class="font-label-lg text-label-lg text-on-surface">EventPulse</span></div><p class="font-body-sm text-body-sm text-on-surface-variant">© 2025 EventPulse Platform Inc. Precision event management and ticket orchestration.</p><div class="flex items-center gap-space-lg"><a class="font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" href="#">Terms</a><a class="font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" href="#">Privacy</a><a class="font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" href="#">Support</a></div></div></footer></body></html>

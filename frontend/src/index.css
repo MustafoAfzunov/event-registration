@@ -1,60 +1,60 @@
-:root {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: #1f2328;
-  background: #f6f8fa;
-  line-height: 1.45;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base reset from the Stitch export, plus the focus ring from DESIGN.md ("2px solid #6366F1, 2px offset").
+   Deliberately NOT copied: the export hides all scrollbars (::-webkit-scrollbar { display: none }), which makes
+   scrollable tables and modals harder to use. */
+@layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    overscroll-behavior: none;
+  }
+  main > :first-child {
+    margin-top: 0 !important;
+  }
+  main > :last-child {
+    margin-bottom: 0 !important;
+  }
+  :focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+  }
+  /* inputs draw their own focus ring (border + ring-primary/20) */
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
 }
-body { margin: 0; }
-header { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: #fff; border-bottom: 1px solid #d0d7de; }
-header nav a { margin-left: 1rem; }
-.brand { font-weight: 700; text-decoration: none; color: inherit; }
-main { max-width: 56rem; margin: 1.5rem auto; padding: 0 1rem; }
-footer { max-width: 56rem; margin: 2rem auto; padding: 0 1rem; font-size: 0.85rem; }
-a { color: #0969da; }
-h1 { margin-bottom: 0.25rem; }
-.muted { color: #57606a; }
-.small { font-size: 0.85rem; }
-.description { white-space: pre-wrap; }
-.narrow { max-width: 24rem; }
-.stack { display: flex; flex-direction: column; gap: 0.5rem; }
-.row { display: flex; gap: 0.5rem; }
-.row input { flex: 1; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; margin-top: 1rem; }
-.card { background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 1rem; }
-.cards { list-style: none; padding: 0; display: grid; gap: 0.75rem; }
-input, textarea, button { font: inherit; padding: 0.45rem 0.6rem; border-radius: 6px; border: 1px solid #d0d7de; }
-button, .button { background: #1f883d; color: #fff; border-color: #1a7f37; cursor: pointer; text-decoration: none; padding: 0.45rem 0.8rem; border-radius: 6px; display: inline-block; }
-button:disabled { opacity: 0.6; cursor: default; }
-button.danger { background: #cf222e; border-color: #a40e26; }
-button.link { background: none; border: none; color: #0969da; padding: 0; text-decoration: underline; }
-.alert { padding: 0.6rem 0.8rem; border-radius: 6px; border: 1px solid; margin: 0.75rem 0; }
-.alert-error { background: #ffebe9; border-color: #ff8182; }
-.alert-ok { background: #dafbe1; border-color: #4ac26b; }
-.alert-warn { background: #fff8c5; border-color: #d4a72c; }
-.alert-info { background: #ddf4ff; border-color: #54aeff; }
-.availability { margin: 1rem 0; font-size: 1.1rem; }
-.live { font-size: 0.8rem; color: #57606a; }
-.live-live { color: #1a7f37; }
-.live-reconnecting, .live-connecting { color: #9a6700; }
-.live-expired, .live-closed { color: #cf222e; }
-.ticket { background: #fff; border: 2px dashed #57606a; border-radius: 8px; padding: 1rem; text-align: center; margin: 1rem 0; }
-.ticket-code { font-family: ui-monospace, monospace; font-size: 2.2rem; letter-spacing: 0.15em; }
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 0.75rem; margin: 1rem 0; }
-.stat { background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 0.75rem; text-align: center; }
-.stat-value { font-size: 1.8rem; font-weight: 700; }
-.stat-label, .stat-hint { font-size: 0.8rem; color: #57606a; }
-.tabs { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
-.tabs button { background: #fff; color: inherit; border-color: #d0d7de; }
-.tabs button[aria-selected="true"] { background: #0969da; color: #fff; }
-table { width: 100%; border-collapse: collapse; background: #fff; }
-th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid #d0d7de; font-size: 0.9rem; }
-.code-input { font-family: ui-monospace, monospace; font-size: 1.6rem; text-transform: uppercase; letter-spacing: 0.1em; }
-.result { margin-top: 1rem; padding: 1.25rem; border-radius: 8px; font-size: 1.1rem; }
-.result-title { font-size: 1.8rem; font-weight: 700; }
-.result-ok { background: #1a7f37; color: #fff; }
-.result-error { background: #cf222e; color: #fff; }
-.admin-bar { font-size: 0.9rem; color: #57606a; }
-.status { padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #d0d7de; background: #fff; }
-.status[data-state="ok"] { border-color: #1a7f37; }
-.status[data-state="error"] { border-color: #cf222e; }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* Icon font (Material Symbols Outlined, self-hosted variable font with the FILL axis). */
+@layer components {
+  .material-symbols-outlined {
+    font-family: "Material Symbols Outlined Variable";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: "FILL" 0, "wght" 400;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ping,
+  .animate-pulse,
+  .animate-spin {
+    animation: none;
+  }
+}

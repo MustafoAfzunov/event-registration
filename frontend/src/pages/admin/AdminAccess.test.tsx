@@ -43,6 +43,8 @@ describe("Organizer access", () => {
       "GET /api/admin/events/new-1/registrations": { body: [] },
     });
     const { user } = renderAt("/admin");
+    await user.click(await screen.findByRole("button", { name: "Create New Event" }));
+    expect(await screen.findByRole("dialog", { name: "Create event" })).toBeInTheDocument();
     await user.type(await screen.findByLabelText("Title"), "Fresh");
     await user.type(screen.getByLabelText("Starts at (your local time)"), "2099-05-01T19:00");
     await user.clear(screen.getByLabelText("Seat limit"));
@@ -52,5 +54,32 @@ describe("Organizer access", () => {
     expect(await screen.findByRole("heading", { name: "Fresh" })).toBeInTheDocument();
     const sent = calls.find((c) => c.method === "POST" && c.path === "/api/admin/events")?.body;
     expect(sent).toEqual({ title: "Fresh", description: "", starts_at: new Date("2099-05-01T19:00").toISOString(), capacity: 3 });
+  });
+});
+
+describe("Organizer events list", () => {
+  it("opens_create_dialog_from_query_and_closes_with_escape", async () => {
+    mockApi({
+      ...HEALTH,
+      "GET /api/admin/me": { body: { role: "organizer" } },
+      "GET /api/admin/events": { body: [] },
+    });
+    const { user } = renderAt("/admin?new=1");
+    expect(await screen.findByRole("dialog", { name: "Create event" })).toBeInTheDocument();
+    expect(await screen.findByText(/No events yet/)).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows_loading_then_events_table_with_status", async () => {
+    mockApi({
+      ...HEALTH,
+      "GET /api/admin/me": { body: { role: "organizer" } },
+      "GET /api/admin/events": { body: [EVENT, { ...EVENT, id: "ev-2", title: "Gone", status: "cancelled" }] },
+    });
+    renderAt("/admin");
+    expect(await screen.findByRole("link", { name: "PyCon Meetup" })).toBeInTheDocument();
+    const row = screen.getByRole("link", { name: "Gone" }).closest("tr");
+    expect(row).toHaveTextContent("Cancelled");
   });
 });

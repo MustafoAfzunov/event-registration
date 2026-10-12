@@ -130,6 +130,12 @@ Test file paths are relative to `backend/tests/`, `frontend/src/`, or `e2e/`.
   - `useEventStream.test.ts::applies_snapshots_and_reconnects`, `::reports_closed_when_server_refuses`, `::stops_on_session_expired`, `::closes_on_unmount_and_ignores_other_events`, `::does_not_connect_without_url`
 - **DoD:** every user-facing flow in the brief is clickable in the browser on `localhost:8080`. Tests, `tsc` and eslint are clean. ✅ A manual two-tab walkthrough on the real stack is recorded in DEVLOG phase 7.
 
+## Phase 7b: Apply the Stitch design (presentation only)
+- **Scope:** rebuild the four exported screens (`docs/stitch_event_registration_app_screens/`) in our React app as a faithful visual copy: the export's Tailwind theme verbatim, its type scale and components, and its responsive layout. Presentation layer only: routing, `api.ts`, `useEventStream.ts`, `errors.ts` and the backend are unchanged. **No mockup content:** everything shown comes from the API / SSE; elements without backend support (speakers, schedule, FAQ, prices, tiers, revenue, map, QR, camera, wallets, search, avatars, notifications, ...) are removed, not faked.
+- **Files:** `frontend/{tailwind.config.js,postcss.config.js,index.html}`, `src/{index.css,main.tsx,App.tsx,format.ts,useNow.ts}`, `src/components/{Icon,Modal,Toast,Pagination,ui,styles}`, all pages. Fonts (Inter, Plus Jakarta Sans, Material Symbols with the FILL axis) are self-hosted via `@fontsource-variable/*`; Tailwind runs in the Vite build instead of the export's CDN script.
+- **Tests:** all existing test names kept; selectors updated where the DOM changed (modals, tab labels with counts, `data-result` on the check-in result). New: `format.test.ts`, `PublicPages.test.tsx`, plus dashboard/check-in/admin-access additions. `make e2e` updated for the modal flow.
+- **DoD:** typecheck, eslint and the component tests pass; `make e2e` passes; screens verified in a real browser at desktop and 375px width; the deployed bundle has no Google/CDN/mockup-image references. ✅
+
 ## Phase 8: E2E and proof
 - **Scope:**
   - Playwright suite (official image, Chromium) in **two browser contexts**, against an isolated compose stack (scheduler tick 2s), reading real emails through that stack's Mailpit API.
