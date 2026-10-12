@@ -4,13 +4,9 @@ Task 9, Event registration service. Each item below says where it is and what st
 
 ## 1. Repository link
 
-**GitHub URL: not filled in yet.** The repository has no remote; it exists only on the developer's machine. To publish it, create an empty repository on GitHub and run:
+**GitHub URL: https://github.com/MustafoAfzunov/event-registration** (public, branch `master`).
 
-```bash
-git remote add origin https://github.com/<user>/<repo>.git && git push -u origin master
-```
-
-The history is 16 commits on `master` (see item 4). `reports/` and `.env` are git-ignored; `.env.example` holds development-only values.
+The history is 17 commits on `master` (including the one that added this URL) (see item 4). `reports/` and `.env` are git-ignored; `.env.example` holds development-only values.
 
 ## 2. What it was built with, and why
 
