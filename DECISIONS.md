@@ -593,3 +593,10 @@ Format: **D-NNN, title** · When · Decision · Why · Rejected alternatives.
 ### D-099: Real-browser review found two defects the component tests could not
 - **When:** 2026-10-12T20:04:58+06:00
 - **Decision/result:** (1) the ticket code wrapped to two lines in the stub, and (2) at 375px the participants table crushed the email column to a few characters instead of scrolling. Both fixed (code is `whitespace-nowrap` in a wider stub; tables have a minimum width inside their scroll container), plus status pills no longer wrap and the check-in placeholder no longer collides with its hint. jsdom has no layout engine, so this class of bug needs a real browser. There's no automated visual regression test (stays a manual check, see DEVLOG).
+
+### D-100: Submission pack: disclose the post-7b defects instead of fixing them; prompts in the repo; raw session export withheld
+- **When:** 2026-10-12T21:22:18+06:00
+- **Decision:** (1) The four defects found by manual Chrome testing after phase 7b (SSE not recovering after a backend restart, a wrong note on cancelled events, a bad-id message, no favicon) are recorded as U1-U4 in `docs/REVIEW.md` and the README, and the README sentence that streams "resync after a lost connection" was corrected to say what is true. (2) `docs/PROMPTS.md` holds every developer message verbatim, extracted mechanically from the session transcript. (3) `docs/SUBMISSION.md` maps the course's seven deliverables to files. (4) The raw 17 MB `.jsonl` export is not committed (local paths, e-mail address, tool output); the course allows prompts plus the decision log instead.
+- **Why:** this commit only changes documentation, so the proof run on `cebb76d` still describes the code; changing application code now would have needed a new full proof. Hiding a known bug would break the project's honesty rule (CLAUDE.md rule 7).
+- **Rejected:** fixing U1 in this commit (a separate phase with its own test-first work and proof; it is the first item in "Next steps"); committing the raw transcript.
+

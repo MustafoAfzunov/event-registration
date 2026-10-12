@@ -4,7 +4,7 @@ People register for an event by email and get an emailed ticket with a code. Whe
 
 **Stack:** FastAPI (Python 3.12) + PostgreSQL 16 backend, a separate email/scheduler worker, a React 19 + Vite + Tailwind CSS 3 frontend (the "Kinetic Horizon" design from `docs/stitch_event_registration_app_screens/`) served by nginx, and Mailpit as the email inbox. Everything runs with one `docker compose` command.
 
-**Where to look next:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (design and concurrency mechanisms), [docs/API.md](docs/API.md) (API contract), [docs/TEST_PLAN.md](docs/TEST_PLAN.md) (requirement → test map), [docs/REVIEW.md](docs/REVIEW.md) (independent review and open findings), [DECISIONS.md](DECISIONS.md) (every decision with timestamp and reason), [DEVLOG.md](DEVLOG.md) and [docs/TIMELINE.md](docs/TIMELINE.md) (how it was built).
+**Where to look next:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (design and concurrency mechanisms), [docs/API.md](docs/API.md) (API contract), [docs/TEST_PLAN.md](docs/TEST_PLAN.md) (requirement → test map), [docs/REVIEW.md](docs/REVIEW.md) (independent review and open findings), [DECISIONS.md](DECISIONS.md) (every decision with timestamp and reason), [DEVLOG.md](DEVLOG.md) and [docs/TIMELINE.md](docs/TIMELINE.md) (how it was built), [docs/PROMPTS.md](docs/PROMPTS.md) (every prompt), [docs/SUBMISSION.md](docs/SUBMISSION.md) (the hand-in checklist).
 
 ## Quick start
 
@@ -58,7 +58,7 @@ migrate (one-shot: alembic upgrade head) runs before backend and worker start
 - **Waitlist is FIFO.** Waiting order comes from a sequence assigned under the lock. A freed seat goes to the first person waiting in the *same* transaction, so a newcomer can never take it first.
 - **Emails use a transactional outbox.** The email row is written in the same transaction as the state change, with a unique dedupe key, so it's queued exactly once. The worker sends it to Mailpit with leases, fencing, retries and backoff. Delivery is **at-least-once**: one narrow crash window can produce a duplicate with the same Message-ID, and it never loses one ([D-043](DECISIONS.md)).
 - **Reminders don't depend on in-memory timers.** The scheduler is driven entirely by the database: it locks due events with `FOR UPDATE SKIP LOCKED`, and the outbox dedupe key is the "reminder exists" record. It's restart-safe and safe with several instances. Each reminder is re-checked when sent (still confirmed? same date? not started?).
-- **Live updates use SSE** with Postgres `LISTEN/NOTIFY`, so they work across both uvicorn workers. Each stream sends a full snapshot on connect and resyncs after a lost connection.
+- **Live updates use SSE** with Postgres `LISTEN/NOTIFY`, so they work across both uvicorn workers. Each stream sends a full snapshot on connect, and the server's own Postgres listener resyncs after it reconnects. **The browser side does not recover if the backend restarts**: the page keeps showing old numbers until you reload it ([U1](docs/REVIEW.md)).
 - **Check-in** is a single conditional `UPDATE … WHERE status='confirmed'`, so a ticket can be used exactly once even with parallel scans.
 - **Auth:**
   - **Organizer:** one shared password, then a signed httpOnly `SameSite=Strict` cookie.
@@ -176,6 +176,12 @@ Other entry points: `make test` (backend + frontend), `make lint`, `make test-sm
   - L6: running without make was checked by hand but has no automated test;
   - L7: each open stream re-queries on every change.
 
+**Found after phase 7b by manual browser testing, not fixed** ([docs/REVIEW.md](docs/REVIEW.md) U1–U4):
+- **U1 (the only one that matters):** live counters on an open page don't recover after the backend restarts; reload the page.
+- **U2:** a cancelled event's page still shows the "Cancel anytime…" note.
+- **U3:** `/events/not-a-uuid` shows a validation message instead of "not found".
+- **U4:** no favicon.
+
 **Limits that are part of the design:**
 - **Exactly-once email *delivery* over SMTP isn't possible.** We guarantee exactly-once queueing and at-least-once delivery ([D-043](DECISIONS.md)).
 - **One event's seat changes are serialized by its row lock.** Measured: 106–118 registrations/s for a single event on four earlier stress runs (p95 2.1–2.2s with 250 requests in flight), but only 48/s (p95 5.0s) on the phase 7b run, which shared the machine with other containers; the cause wasn't investigated, so treat throughput as machine-dependent. All 17 invariants held in every run. Different events don't block each other.
@@ -196,12 +202,13 @@ Other entry points: `make test` (backend + frontend), `make lint`, `make test-sm
 
 ## AI tools used
 
-The project was built with **Claude Code** (Anthropic's agentic coding tool, used in the Claude desktop app) running the **Claude Opus 5.5** model (`claude-opus-5-5`). It wrote the code, tests and docs and ran the builds, tests and probes recorded in [DEVLOG.md](DEVLOG.md), one phase per prompt from the developer. It suited this task because the assignment rewards proof over assertion: an agent that can run the whole stack (real Postgres, real browsers, real email) can be required to show evidence for each step, such as failing tests first, mutation checks and a clean-clone proof run.
+The project was built with **Claude Code** (Anthropic's agentic coding tool, used in the Claude desktop app). Phases 0-10 ran on **Claude Opus 5.5** (`claude-opus-5-5`). From 2026-10-12 13:44+06:00 the session ran on **Claude Sonnet 5.5** (`claude-sonnet-5-5`): starting the stack for manual testing, the phase 7b design work, the browser test in Chrome, and the requirements audit. The prompts are in [docs/PROMPTS.md](docs/PROMPTS.md). It wrote the code, tests and docs and ran the builds, tests and probes recorded in [DEVLOG.md](DEVLOG.md), one phase per prompt from the developer. It suited this task because the assignment rewards proof over assertion: an agent that can run the whole stack (real Postgres, real browsers, real email) can be required to show evidence for each step, such as failing tests first, mutation checks and a clean-clone proof run.
 
-The developer set the phase plan and requirements, and answered the decisions the AI asked about: approving the phase 2 plan, and choosing at-least-once email delivery ([D-031](DECISIONS.md), [D-043](DECISIONS.md)).
+The developer wrote the phase prompts and requirements, and answered the decisions the AI asked about: approving the phase 2 plan, and choosing at-least-once email delivery ([D-031](DECISIONS.md), [D-043](DECISIONS.md)).
 
 ## Templates and generated files
 
+- **The visual design is not ours.** It is a Stitch export (Google's AI design tool, project "Kinetic Horizon") kept in `docs/stitch_event_registration_app_screens/` (HTML screens, Tailwind theme, `DESIGN.md`). The UI was rebuilt from it in React by the AI tool (phase 7b, [D-092 onward](DECISIONS.md)); its Tailwind theme is used unchanged and everything the backend can't support was removed. Fonts and the Material Symbols icon font come from `@fontsource-variable/*` npm packages and are served from our own server.
 - **No project generator** (create-vite, cookiecutter, FastAPI templates) was used. Application code, tests, configs and docs were written in this repository by the AI tool described above.
 - **`backend/alembic/script.py.mako`** follows Alembic's standard revision template. The migration itself (`0001_initial.py`) was hand-written, not autogenerated ([D-002](DECISIONS.md)).
 - **Generated by tools:** `frontend/package-lock.json` and `e2e/package-lock.json` (npm), and `docs/TIMELINE.md` (by `scripts/timeline.sh` from `git log` and `DEVLOG.md`). The proof table is generated at run time by `scripts/proof_report.py`.
@@ -209,7 +216,7 @@ The developer set the phase plan and requirements, and answered the decisions th
 
 ## Next steps
 
-1. Fix the open MEDIUM findings with their prepared tests:
+1. Fix U1 (live updates after a backend restart) first: a failing component test, then a capped-backoff reconnect in `useEventStream.ts`. Then the open MEDIUM findings with their prepared tests:
    - CSRF guard (JSON content type or a custom header on every mutating admin call);
    - server-side session revocation;
    - refuse dev secrets when `APP_ENV=production`;
@@ -229,6 +236,6 @@ backend/   FastAPI app (app/), Alembic migration, pytest suite (tests/)
 frontend/  React + Vite app, Vitest tests, nginx config
 e2e/       Playwright tests (two browser contexts)
 scripts/   smoke_compose.sh, e2e.sh, stress.py, proof.sh, proof_report.py, timeline.sh
-docs/      ARCHITECTURE, API, PLAN, TEST_PLAN, REVIEW, TIMELINE
+docs/      ARCHITECTURE, API, PLAN, TEST_PLAN, REVIEW, TIMELINE, PROMPTS, SUBMISSION
 infra/     Postgres init script (creates the test database)
 ```

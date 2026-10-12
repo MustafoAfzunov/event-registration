@@ -24,6 +24,10 @@ Each finding has a proposed test that reproduces it. **Status** is updated as fi
 | L5 | LOW | `seats_taken == number of seat holders` is maintained by code, not enforced by the DB | open |
 | L6 | LOW | `docker compose up --build` without make is claimed in the README but never tested | checked by hand from a clean clone (phase 10); still no automated test |
 | L7 | LOW | One snapshot query per open stream per change (N viewers = N queries) | open |
+| U1 | MEDIUM | Live updates never recover after the backend restarts (the browser gives up and the hook doesn't reopen the stream) | open, found after phase 7b by manual browser testing |
+| U2 | LOW | A cancelled event's page still shows "Cancel anytime…" under the form | open |
+| U3 | LOW | `/events/not-a-uuid` shows a validation message instead of "not found" | open |
+| U4 | LOW | No favicon; the SPA fallback answers `/favicon.ico` with `index.html` | open |
 
 What I looked for and did **not** find: overbooking or duplicate seats under any interleaving I could construct (event lock + CHECK + partial unique index, all mutation-tested), lock-order inversions, SQL injection, XSS (React escaping; emails are plain text), open redirect after login (`next` must start with `/admin`), and non-idempotent enqueue (every email kind has a deterministic dedupe key).
 
@@ -110,6 +114,17 @@ The cookie is a stateless signed timestamp. A copy taken before logout still get
 - **L5 Counter not DB-enforced:** overbooking is DB-enforced (CHECK). The counter matching the actual number of seat holders is only checked by tests (`assert_invariants`). *Fix idea:* a deferred constraint trigger, or drop the counter and count under the lock.
 - **L6 Untested claim:** `docker compose up --build` without make (README "Quick start"). *Test:* a smoke variant using that command.
 - **L7 Fan-out cost:** each open stream re-queries on each change. Fine at this scale. Would need a per-process snapshot cache keyed by `(event, version)` for large audiences.
+
+---
+
+## U1–U4: found after phase 7b by driving the real UI (not part of the phase 9 review)
+
+Found on 2026-10-12 while testing the whole UI in Chrome against the running stack. None was fixed; they are disclosed here and in the README.
+
+- **U1, live updates don't recover after a backend restart (MEDIUM, reproduced by hand).** With an event page open, restart the backend container: the page keeps showing the old numbers (it showed 2 seats left when 1 was left) until it is reloaded. `frontend/src/useEventStream.ts` handles `onerror` by setting `closed` when `readyState === EventSource.CLOSED`, but never creates a new `EventSource` after that. The browser's built-in retry only covers a dropped connection where it keeps the stream open; it doesn't cover the case where it gives up. The server side is fine: its Postgres listener does reconnect and resync (tested). **Test:** a component test with the fake `EventSource` that fails with `readyState = CLOSED` and expects a new instance after a backoff; optionally an E2E that restarts the backend. **Fix idea:** schedule a manual reconnect with capped exponential backoff until unmount.
+- **U2, wrong note on a cancelled event (LOW).** The public page of a cancelled event still shows the "Cancel anytime…" text under the registration area. It is only text; no cancellation is possible.
+- **U3, bad id in the URL (LOW).** `/events/not-a-uuid` shows the API's validation message instead of a "not found" page.
+- **U4, no favicon (LOW).** The browser requests `/favicon.ico` and gets `index.html` (the SPA fallback), so the tab icon is the default one and the console may log an error.
 
 ---
 

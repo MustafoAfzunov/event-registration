@@ -435,3 +435,18 @@ All fixed. The component tests cannot catch layout bugs (jsdom has no layout eng
 - Not measured: Lighthouse performance, Firefox/Safari rendering, mobile browsers other than the emulated viewport.
 
 **Next:** none planned; phase 10 docs were updated for the design (README "Design" section, CLAUDE.md UI content rule).
+
+---
+
+## 2026-10-12T21:22:18+06:00 · Phase 11: Submission pack
+
+**Done**
+- Audited the project against the course requirements (general 1-13 and Task 9): all met; two honesty gaps found (README overclaimed live-update recovery; defects found in Chrome testing were unrecorded).
+- Added `docs/PROMPTS.md` (18 developer messages, verbatim, with times), `docs/SUBMISSION.md` (the seven deliverables), U1-U4 in `docs/REVIEW.md` and the README (limitations, next steps), the AI-tools section (Opus 5.5 for phases 0-10, Sonnet 5.5 afterwards), and the Stitch export as third-party design source. D-100 logged. `docs/TIMELINE.md` regenerated.
+- Documentation only: no application code, tests or migrations changed, so the last full `make proof` (commit `cebb76d`: 7/7 steps, 293 cases, 46 PASS + 1 MANUAL) still applies.
+
+**Not done**
+- No GitHub URL: the repo has no remote (item 1 of SUBMISSION.md says how to push).
+- U1 not fixed (see REVIEW.md); the raw session export is not included.
+- The clean-clone verification from phase 10 predates phase 7b and was not repeated.
+
